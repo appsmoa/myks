@@ -59,21 +59,45 @@ os.makedirs(STATIC_DIR, exist_ok=True)
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
+def check_auth(request: Request, key: Optional[str] = None) -> bool:
+    if key and key.strip().lower() == "myks":
+        return True
+    if request.cookies.get("myks_auth", "").strip().lower() == "myks":
+        return True
+    if request.headers.get("X-Myks-Key", "").strip().lower() == "myks":
+        return True
+    return False
+
 @app.on_event("startup")
 def on_startup():
     database.init_db()
 
+@app.post("/api/auth/verify")
+def api_verify_auth(data: dict):
+    input_key = data.get("key", "").strip().lower()
+    if input_key == "myks":
+        res = JSONResponse({"success": True})
+        res.set_cookie(key="myks_auth", value="myks", max_age=31536000, httponly=False, samesite="lax")
+        return res
+    return JSONResponse({"success": False, "message": "암호가 올바르지 않습니다."}, status_code=401)
+
 @app.get("/", response_class=HTMLResponse)
-def index(request: Request):
+def index(request: Request, key: Optional[str] = None):
+    is_authenticated = check_auth(request, key)
     has_api_key = bool(os.getenv("GEMINI_API_KEY", "").strip())
-    return templates.TemplateResponse(
+    response = templates.TemplateResponse(
         request=request,
         name="index.html",
-        context={"has_api_key": has_api_key}
+        context={"has_api_key": has_api_key, "is_authenticated": is_authenticated}
     )
+    if key and key.strip().lower() == "myks":
+        response.set_cookie(key="myks_auth", value="myks", max_age=31536000, httponly=False, samesite="lax")
+    return response
 
 @app.get("/api/bulletins")
-def api_list_bulletins(q: Optional[str] = None, type: str = "all", year: Optional[str] = None, page: int = 1, page_size: int = 12):
+def api_list_bulletins(request: Request, q: Optional[str] = None, type: str = "all", year: Optional[str] = None, page: int = 1, page_size: int = 12, key: Optional[str] = None):
+    if not check_auth(request, key):
+        raise HTTPException(status_code=403, detail="접근 권한이 없습니다.")
     offset = (page - 1) * page_size
     items = database.list_bulletins(query=q, search_type=type, year=year, limit=page_size, offset=offset)
     total_count = database.count_bulletins(query=q, search_type=type, year=year)
@@ -114,7 +138,9 @@ def api_get_years():
     return database.get_available_years()
 
 @app.get("/api/bulletins/{b_id}")
-def api_get_bulletin(b_id: int):
+def api_get_bulletin(b_id: int, request: Request, key: Optional[str] = None):
+    if not check_auth(request, key):
+        raise HTTPException(status_code=403, detail="접근 권한이 없습니다.")
     item = database.get_bulletin_by_id(b_id)
     if not item:
         raise HTTPException(status_code=404, detail="Bulletin not found")
