@@ -36,7 +36,7 @@
           <i class="fa-solid fa-arrows-rotate text-sm"></i>
           <span id="batchBtnText">전체 정리</span>
         </button>
-        <button onclick="openApiKeyModal()" class="px-3 py-2 text-xs sm:text-sm font-semibold rounded-xl border-2 border-slate-300 hover:bg-slate-50 flex items-center space-x-1.5 transition shadow-xs">
+        <button onclick="openApiKeyModal()" class="hidden sm:flex px-3 py-2 text-xs sm:text-sm font-semibold rounded-xl border-2 border-slate-300 hover:bg-slate-50 items-center space-x-1.5 transition shadow-xs">
           <i class="fa-solid fa-key text-amber-500"></i>
           <span>API 키</span>
         </button>
@@ -173,33 +173,27 @@
     <div id="pagination" class="flex justify-center items-center space-x-2 mt-10"></div>
   </main>
   {% else %}
-  <!-- 성도 전용 접근 게이트웨이 화면 -->
+  <!-- 성도 전용 접근 게이트웨이 화면 (미니멀 심플 디자인) -->
   <div class="flex-1 flex items-center justify-center p-4 py-16 sm:py-24">
-    <div class="max-w-md w-full bg-white rounded-3xl p-8 sm:p-10 border-2 border-slate-300 shadow-xl text-center space-y-6">
-      <div class="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-3xl mx-auto flex items-center justify-center text-3xl shadow-sm border border-indigo-100">
+    <div class="max-w-xs w-full bg-white rounded-3xl p-6 sm:p-8 border-2 border-slate-300 shadow-xl text-center space-y-5">
+      <div class="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-sm border border-indigo-100">
         <i class="fa-solid fa-lock"></i>
       </div>
-      <div>
-        <h2 class="text-2xl font-black text-slate-950">금성교회 성도 전용</h2>
-        <p class="text-sm font-medium text-slate-600 mt-2.5 leading-relaxed">
-          성도님들의 개인정보 및 헌금 내역 보호를 위해<br>
-          지정된 전용 링크 또는 성도 암호 확인 후 열람하실 수 있습니다.
-        </p>
-      </div>
-      <div class="space-y-3 pt-2">
+      <div class="space-y-2.5">
         <input 
           type="password" 
           id="authPassInput" 
-          placeholder="성도 암호 입력" 
-          class="w-full px-5 py-3.5 bg-slate-50 border-2 border-slate-300 rounded-2xl text-center font-bold text-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-300 focus:border-indigo-600 transition"
+          placeholder="" 
+          class="w-full px-4 py-3 bg-slate-50 border-2 border-slate-300 rounded-xl text-center font-bold text-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-300 focus:border-indigo-600 transition"
           onkeydown="if(event.key === 'Enter') submitAuthKey()"
+          autofocus
         />
         <button 
           onclick="submitAuthKey()" 
           id="authSubmitBtn"
-          class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-base rounded-2xl transition shadow-md flex items-center justify-center space-x-2">
-          <i class="fa-solid fa-key"></i>
-          <span>인증 및 주보 열람</span>
+          class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-base rounded-xl transition shadow-md flex items-center justify-center space-x-2">
+          <i class="fa-solid fa-arrow-right-to-bracket"></i>
+          <span>확인</span>
         </button>
       </div>
       <p id="authErrorMsg" class="hidden text-xs font-bold text-rose-600 pt-1"></p>
