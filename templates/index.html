@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>금성교회 주보</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+    body { font-family: 'Pretendard', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-900 min-h-screen flex flex-col text-base">
+
+  <!-- Header (군더더기 글씨 제거 및 깔끔한 배치) -->
+  <header class="bg-white border-b border-slate-300 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 py-3.5 flex items-center justify-between">
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="resetSearch()">
+        <div class="w-11 h-11 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md">
+          <i class="fa-solid fa-book-bible text-xl"></i>
+        </div>
+        <div>
+          <h1 class="font-black text-xl sm:text-2xl leading-none text-slate-950">금성교회 주보</h1>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2 sm:space-x-3">
+        <button id="batchAnalyzeBtn" onclick="triggerBatchAnalyze()" class="px-3.5 py-2 text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 rounded-xl shadow-md flex items-center space-x-1.5 transition">
+          <i class="fa-solid fa-arrows-rotate text-sm"></i>
+          <span id="batchBtnText">전체 정리</span>
+        </button>
+        <button onclick="openApiKeyModal()" class="px-3 py-2 text-xs sm:text-sm font-semibold rounded-xl border-2 border-slate-300 hover:bg-slate-50 flex items-center space-x-1.5 transition shadow-xs">
+          <i class="fa-solid fa-key text-amber-500"></i>
+          <span>API 키</span>
+        </button>
+        <button onclick="triggerCrawl()" class="px-3 py-2 text-xs sm:text-sm font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-xl shadow-xs flex items-center space-x-1.5 transition">
+          <i class="fa-solid fa-cloud-arrow-down"></i>
+          <span>동기화</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Search Section -->
+  <section class="bg-white border-b border-slate-300 py-6 shadow-xs">
+    <div class="max-w-5xl mx-auto px-4">
+      
+      <!-- Search Category Tabs ([전체] | [기도자] | [설교자] | [본문성경] | [교회소식] | [헌금명단]) -->
+      <div class="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-3">
+        <button onclick="setSearchType('all')" id="tab_all" class="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold bg-indigo-600 text-white shadow-xs transition flex items-center space-x-1.5">
+          <i class="fa-solid fa-list-ul"></i>
+          <span>전체</span>
+        </button>
+        <button onclick="setSearchType('prayer')" id="tab_prayer" class="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition flex items-center space-x-1.5">
+          <i class="fa-solid fa-hands-praying"></i>
+          <span>기도자</span>
+        </button>
+        <button onclick="setSearchType('preacher')" id="tab_preacher" class="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition flex items-center space-x-1.5">
+          <i class="fa-solid fa-user-tie"></i>
+          <span>설교자</span>
+        </button>
+        <button onclick="setSearchType('scripture')" id="tab_scripture" class="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition flex items-center space-x-1.5">
+          <i class="fa-solid fa-book-bible"></i>
+          <span>본문성경</span>
+        </button>
+        <button onclick="setSearchType('announcement')" id="tab_announcement" class="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition flex items-center space-x-1.5">
+          <i class="fa-solid fa-bullhorn"></i>
+          <span>교회소식</span>
+        </button>
+        <button onclick="setSearchType('offering')" id="tab_offering" class="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition flex items-center space-x-1.5">
+          <i class="fa-solid fa-gift"></i>
+          <span>헌금명단</span>
+        </button>
+      </div>
+
+      <!-- Search Input Bar -->
+      <div class="relative flex items-center">
+        <i class="fa-solid fa-magnifying-glass absolute left-5 text-slate-400 text-xl"></i>
+        <input 
+          type="text" 
+          id="searchInput"
+          placeholder="설교 제목, 본문, 설교자, 인도자, 기도자, 성도 이름 검색..." 
+          class="w-full pl-14 pr-28 py-3.5 bg-slate-50 rounded-2xl border-2 border-slate-300 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-300 focus:border-indigo-600 text-base sm:text-lg font-bold text-slate-900 transition"
+          onkeydown="if(event.key === 'Enter') handleSearch()"
+        />
+        <button 
+          onclick="handleSearch()"
+          class="absolute right-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-base font-black rounded-xl transition shadow-md">
+          검색
+        </button>
+      </div>
+
+      <!-- Year Filter Row (연도별 필터 버튼 - 스크롤 없이 한눈에 들어오는 칩 배치) -->
+      <div class="mt-3.5 flex flex-wrap items-center gap-1.5 text-xs">
+        <span class="text-slate-500 font-bold flex items-center mr-1">
+          <i class="fa-regular fa-calendar mr-1.5 text-indigo-500"></i>연도:
+        </span>
+        <div id="yearButtons" class="flex flex-wrap items-center gap-1">
+          <button onclick="setYear('all')" id="year_all" class="px-2.5 py-1 rounded-lg font-bold bg-indigo-600 text-white transition shadow-xs">전체</button>
+          <button onclick="setYear('2026')" id="year_2026" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2026</button>
+          <button onclick="setYear('2025')" id="year_2025" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2025</button>
+          <button onclick="setYear('2024')" id="year_2024" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2024</button>
+          <button onclick="setYear('2023')" id="year_2023" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2023</button>
+          <button onclick="setYear('2022')" id="year_2022" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2022</button>
+          <button onclick="setYear('2021')" id="year_2021" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2021</button>
+          <button onclick="setYear('2020')" id="year_2020" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2020</button>
+          <button onclick="setYear('2019')" id="year_2019" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2019</button>
+          <button onclick="setYear('2018')" id="year_2018" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2018</button>
+          <button onclick="setYear('2017')" id="year_2017" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2017</button>
+          <button onclick="setYear('2016')" id="year_2016" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2016</button>
+          <button onclick="setYear('2015')" id="year_2015" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2015</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+    
+    <!-- Meta Bar & Analysis Progress -->
+    <div class="bg-white p-4 sm:p-5 rounded-2xl border-2 border-slate-300 shadow-sm mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div class="flex items-center space-x-3">
+        <div class="text-base sm:text-lg font-black text-slate-900">
+          주보 목록 (<span id="totalCount" class="text-indigo-600 font-black text-xl">0</span>건)
+        </div>
+        <span id="activeQueryBadge" class="hidden items-center bg-indigo-100 text-indigo-900 px-3 py-1 rounded-full text-xs sm:text-sm font-extrabold">
+          <span id="activeQueryText"></span>
+          <button onclick="resetSearch()" class="ml-1.5 hover:text-indigo-700"><i class="fa-solid fa-xmark"></i></button>
+        </span>
+      </div>
+
+      <!-- Realtime Progress Bar -->
+      <div class="w-full md:w-80 flex flex-col space-y-1.5">
+        <div class="flex justify-between items-center text-xs sm:text-sm font-bold">
+          <span class="flex items-center text-slate-700">
+            <i class="fa-solid fa-list-check text-indigo-600 mr-1.5"></i>정리 진행률
+          </span>
+          <span id="progressText" class="text-indigo-700 font-extrabold">0 / 0건 (0%)</span>
+        </div>
+        <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
+          <div id="progressBar" class="bg-gradient-to-r from-indigo-500 to-violet-600 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+        </div>
+        <div id="runningBadge" class="hidden items-center justify-end space-x-1.5 text-xs font-bold text-violet-700">
+          <i class="fa-solid fa-circle-notch fa-spin"></i>
+          <span>자동 정리 진행 중...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bulletin List (텍스트 정보 중심의 시원한 리스트 뷰) -->
+    <div id="bulletinList" class="space-y-4">
+      <!-- List Items populated by JS -->
+    </div>
+
+    <!-- Empty State -->
+    <div id="emptyState" class="hidden text-center py-20 bg-white rounded-3xl border border-slate-300 shadow-sm">
+      <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-400 mb-4 text-3xl">
+        <i class="fa-regular fa-folder-open"></i>
+      </div>
+      <h3 class="text-xl font-bold text-slate-800">검색된 주보가 없습니다</h3>
+      <p class="text-base text-slate-600 mt-2 font-medium">다른 검색어를 입력하시거나 상단 [동기화]를 실행해 보세요.</p>
+    </div>
+
+    <!-- Pagination -->
+    <div id="pagination" class="flex justify-center items-center space-x-2 mt-10"></div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-300 py-6 text-center text-sm font-medium text-slate-500">
+    <p>© 금성교회 주보 (출처: <a href="https://myks.kr/Board/Index/110" target="_blank" class="underline hover:text-indigo-600 font-bold">myks.kr</a>)</p>
+  </footer>
+
+  <!-- Bulletin Detail Modal -->
+  <div id="detailModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-3 sm:p-6">
+    <div class="bg-white rounded-3xl max-w-6xl w-full max-h-[94vh] flex flex-col shadow-2xl overflow-hidden border border-slate-300">
+      
+      <!-- Modal Header -->
+      <div class="px-6 sm:px-8 py-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+        <div>
+          <div class="flex items-center space-x-2.5">
+            <span id="modalDateBadge" class="px-3.5 py-1 rounded-xl text-sm font-black bg-indigo-600 text-white shadow-sm"></span>
+            <span id="modalStatusBadge" class="px-3 py-1 rounded-xl text-xs sm:text-sm font-bold"></span>
+          </div>
+          <h3 id="modalTitle" class="text-xl sm:text-2xl font-black text-slate-950 mt-1.5"></h3>
+        </div>
+        <div class="flex items-center space-x-3">
+          <a id="modalOriginalLink" href="#" target="_blank" class="text-sm font-bold text-slate-700 hover:text-indigo-600 px-3.5 py-2 rounded-xl border border-slate-300 hover:bg-white flex items-center space-x-1.5 transition">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+            <span>교회 원문글</span>
+          </a>
+          <button onclick="closeDetailModal()" class="text-slate-400 hover:text-slate-700 p-2 text-2xl transition">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="flex-1 overflow-y-auto p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- Left: Image Viewer (lg:col-span-6) -->
+        <div class="lg:col-span-6 flex flex-col space-y-3">
+          <div class="relative bg-slate-950 rounded-2xl overflow-hidden flex items-center justify-center min-h-[460px] max-h-[640px] border-2 border-slate-800 shadow-inner">
+            <img id="modalMainImage" src="" alt="주보 이미지" class="max-h-[620px] w-auto object-contain transition-all duration-200">
+            <a id="modalImageNewTab" href="#" target="_blank" class="absolute top-4 right-4 bg-black/75 hover:bg-black text-white text-sm font-bold px-3 py-1.5 rounded-xl backdrop-blur-md transition shadow-md">
+              <i class="fa-solid fa-expand mr-1.5"></i>원본 확대보기
+            </a>
+          </div>
+          <!-- Thumbnail Selector -->
+          <div id="modalThumbnails" class="flex space-x-3 overflow-x-auto py-2"></div>
+        </div>
+
+        <!-- Right: AI Extracted Details (lg:col-span-6) -->
+        <div class="lg:col-span-6 flex flex-col space-y-5">
+          
+          <!-- Sermon Box -->
+          <div class="p-5 rounded-2xl bg-indigo-50/80 border-2 border-indigo-200 shadow-xs">
+            <h4 class="text-sm font-black text-indigo-950 uppercase tracking-wide mb-3 flex items-center">
+              <i class="fa-solid fa-microphone-lines mr-2 text-indigo-600 text-lg"></i>주일 설교 정보
+            </h4>
+            <div class="space-y-2.5">
+              <div>
+                <span class="text-xs font-bold text-slate-500 block">말씀 제목</span>
+                <span id="modalSermonTitle" class="font-black text-xl sm:text-2xl text-slate-950 leading-snug"></span>
+              </div>
+              <div class="grid grid-cols-2 gap-3 pt-2.5 border-t border-indigo-200">
+                <div>
+                  <span class="text-xs font-bold text-slate-500 block">본문 말씀</span>
+                  <span id="modalScripture" class="font-extrabold text-base text-indigo-900"></span>
+                </div>
+                <div>
+                  <span class="text-xs font-bold text-slate-500 block">설교자</span>
+                  <span id="modalPreacher" class="font-extrabold text-base text-slate-900"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Finances Box (헌금 결산 및 재정 현황) -->
+          <div class="p-5 rounded-2xl bg-emerald-50/90 border-2 border-emerald-300 shadow-xs">
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="text-sm sm:text-base font-black text-emerald-950 flex items-center">
+                <i class="fa-solid fa-coins mr-2 text-emerald-600 text-lg"></i>재정 현황 (항목별 헌금 금액)
+              </h4>
+              <span id="modalFinanceDate" class="text-xs sm:text-sm font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-lg"></span>
+            </div>
+            <div id="modalFinances" class="space-y-3"></div>
+          </div>
+
+          <!-- Offerings Box (헌금 명단) -->
+          <div class="p-5 rounded-2xl bg-amber-50/80 border-2 border-amber-300 shadow-xs">
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="text-sm sm:text-base font-black text-amber-950 flex items-center">
+                <i class="fa-solid fa-hand-holding-heart mr-2 text-amber-600 text-lg"></i>향기로운 예물 (헌금 명단)
+              </h4>
+              <span class="text-xs sm:text-sm font-bold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-lg">항목별 성도 명단</span>
+            </div>
+            <div id="modalOfferings" class="space-y-3 max-h-64 overflow-y-auto pr-2"></div>
+          </div>
+
+          <!-- Servants Box -->
+          <div class="p-5 rounded-2xl bg-slate-50 border-2 border-slate-200">
+            <h4 class="text-sm font-black text-slate-800 uppercase tracking-wide mb-3 flex items-center">
+              <i class="fa-solid fa-users mr-2 text-slate-600 text-base"></i>예배별 대표기도 & 봉사자
+            </h4>
+            <div id="modalServants" class="space-y-2.5"></div>
+          </div>
+
+          <!-- Announcements Box -->
+          <div class="p-5 rounded-2xl bg-slate-50 border-2 border-slate-200 flex-1">
+            <h4 class="text-sm font-black text-slate-800 uppercase tracking-wide mb-3 flex items-center">
+              <i class="fa-solid fa-bullhorn mr-2 text-slate-600 text-base"></i>교회 소식 및 광고
+            </h4>
+            <div id="modalAnnouncements" class="space-y-2.5 max-h-64 overflow-y-auto pr-2"></div>
+          </div>
+
+          <!-- Action Button / Notice -->
+          <div class="pt-2">
+            <div id="modalAnalyzedNotice" class="hidden p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between">
+              <div class="flex items-center space-x-2 text-emerald-900 font-bold text-sm">
+                <i class="fa-solid fa-circle-check text-emerald-600 text-lg"></i>
+                <span>주보 데이터가 정상 정리되어 저장되어 있습니다.</span>
+              </div>
+              <button onclick="reanalyzeCurrent()" class="text-xs font-semibold text-slate-500 hover:text-indigo-600 underline ml-2 transition">
+                필요시 재정리
+              </button>
+            </div>
+
+            <div id="modalPendingNotice" class="hidden">
+              <button id="modalReanalyzeBtn" onclick="reanalyzeCurrent()" class="w-full py-3.5 px-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-base flex items-center justify-center space-x-2 transition shadow-lg">
+                <i class="fa-solid fa-wand-magic-sparkles text-amber-300 text-lg"></i>
+                <span>주보 데이터 정리하기</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- API Key Modal -->
+  <div id="apiKeyModal" class="fixed inset-0 z-50 hidden bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-slate-300">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-200">
+        <h3 class="font-extrabold text-lg text-slate-950 flex items-center space-x-2">
+          <i class="fa-solid fa-key text-amber-500"></i>
+          <span>Gemini API 키 설정</span>
+        </h3>
+        <button onclick="closeApiKeyModal()" class="text-slate-400 hover:text-slate-700 text-xl"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="py-5 space-y-4">
+        <div class="bg-amber-50 border border-amber-200 p-3 rounded-xl flex items-center space-x-2.5 text-xs text-amber-900 font-semibold">
+          <i class="fa-solid fa-shield-halved text-amber-600 text-base"></i>
+          <span>보안을 위해 관리자 비밀번호 인증 후 저장됩니다.</span>
+        </div>
+        
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1 flex items-center space-x-1">
+            <i class="fa-solid fa-lock text-slate-500"></i>
+            <span>관리자 비밀번호</span>
+          </label>
+          <input 
+            type="password" 
+            id="adminPasswordInput" 
+            placeholder="비밀번호 입력" 
+            class="w-full px-4 py-2.5 border-2 border-slate-300 rounded-xl text-base focus:outline-none focus:ring-4 focus:ring-indigo-300 font-mono"
+          />
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1 flex items-center space-x-1">
+            <i class="fa-solid fa-key text-slate-500"></i>
+            <span>Gemini API 키 (다중 등록 지원)</span>
+          </label>
+          <textarea 
+            id="apiKeyInput" 
+            rows="2"
+            placeholder="AIzaSy... (키가 여러 개인 경우 쉼표로 구분)" 
+            class="w-full px-4 py-2 border-2 border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-4 focus:ring-indigo-300 font-mono resize-none"
+          ></textarea>
+          <div class="mt-1.5 space-y-1 text-xs text-slate-500">
+            <p>• 무료 할당량이 가장 높은 <strong>Gemini 3.5 Flash-Lite (일일 500건 이상 무료)</strong>가 기본 적용됩니다.</p>
+            <p>• 키를 여러 개 입력(쉼표 구분)하시면 한도 도달 시 자동으로 다음 키로 전환됩니다.</p>
+            <p>• <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-indigo-600 font-bold underline">Google AI Studio</a>에서 무료 발급받으실 수 있습니다.</p>
+          </div>
+        </div>
+      </div>
+      <div class="flex justify-end space-x-3 pt-2">
+        <button onclick="closeApiKeyModal()" class="px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 rounded-xl">취소</button>
+        <button onclick="saveApiKey()" class="px-5 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md">인증 및 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-8 right-8 z-50 hidden bg-slate-950 text-white px-5 py-3.5 rounded-2xl shadow-2xl text-sm font-semibold flex items-center space-x-2.5 transition-all">
+    <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
+    <span id="toastMsg">작업이 완료되었습니다.</span>
+  </div>
+
+  <script>
+    let currentQuery = '';
+    let currentSearchType = 'all';
+    let currentYear = 'all';
+    let currentPage = 1;
+    let currentBulletinId = null;
+
+    function setSearchType(type) {
+      currentSearchType = type;
+      currentPage = 1;
+      
+      const tabs = ['all', 'prayer', 'preacher', 'scripture', 'announcement', 'offering'];
+      const placeholders = {
+        'all': '설교 제목, 본문, 설교자, 인도자, 기도자, 성도 이름 검색...',
+        'prayer': '기도자 성함 검색...',
+        'preacher': '설교자 성함 검색...',
+        'scripture': '본문 성경 구절 검색...',
+        'announcement': '교회 소식 및 광고 내용 검색...',
+        'offering': '헌금자 성함 및 헌금 항목 검색...'
+      };
+
+      tabs.forEach(t => {
+        const btn = document.getElementById(`tab_${t}`);
+        if (!btn) return;
+        if (t === type) {
+          btn.className = 'px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold bg-indigo-600 text-white shadow-xs transition flex items-center space-x-1.5';
+        } else {
+          btn.className = 'px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition flex items-center space-x-1.5';
+        }
+      });
+
+      document.getElementById('searchInput').placeholder = placeholders[type] || placeholders['all'];
+      if (document.getElementById('searchInput').value.trim()) {
+        handleSearch();
+      }
+    }
+
+    function setYear(yr) {
+      currentYear = yr;
+      currentPage = 1;
+
+      const buttons = document.querySelectorAll('#yearButtons button');
+      buttons.forEach(btn => {
+        btn.className = 'px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition';
+      });
+      const activeBtn = document.getElementById(`year_${yr}`);
+      if (activeBtn) {
+        activeBtn.className = 'px-2.5 py-1 rounded-lg font-bold bg-indigo-600 text-white transition shadow-xs';
+      }
+
+      loadBulletins();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadBulletins();
+      checkAnalysisStatus();
+      setInterval(checkAnalysisStatus, 5000);
+    });
+
+    async function checkAnalysisStatus() {
+      try {
+        const res = await fetch('/api/analysis-status');
+        const data = await res.json();
+        
+        document.getElementById('progressText').innerText = `${data.analyzed} / ${data.total}건 (${data.progress_percent}%)`;
+        document.getElementById('progressBar').style.width = `${data.progress_percent}%`;
+        
+        const runningBadge = document.getElementById('runningBadge');
+        const batchBtn = document.getElementById('batchBtnText');
+        
+        if (data.is_running) {
+          runningBadge.classList.remove('hidden');
+          runningBadge.classList.add('flex');
+          batchBtn.innerText = '자동 정리 진행 중...';
+          if (!window._lastAutoReload || Date.now() - window._lastAutoReload > 12000) {
+            window._lastAutoReload = Date.now();
+            loadBulletins();
+          }
+        } else {
+          runningBadge.classList.add('hidden');
+          runningBadge.classList.remove('flex');
+          batchBtn.innerText = '전체 정리';
+        }
+      } catch (e) {}
+    }
+
+    async function triggerBatchAnalyze() {
+      showToast('주보 일괄 정리를 시작합니다...');
+      try {
+        const res = await fetch('/api/batch-analyze', { method: 'POST' });
+        const data = await res.json();
+        showToast(data.message);
+        checkAnalysisStatus();
+      } catch (err) {
+        showToast('자동 정리 시작 실패: ' + err.message, true);
+      }
+    }
+
+    function showToast(msg, isError = false) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      const toastIcon = document.getElementById('toastIcon');
+      toastMsg.innerText = msg;
+      if (isError) {
+        toastIcon.className = 'fa-solid fa-circle-exclamation text-rose-400 text-lg';
+      } else {
+        toastIcon.className = 'fa-solid fa-circle-check text-emerald-400 text-lg';
+      }
+      toast.classList.remove('hidden');
+      setTimeout(() => { toast.classList.add('hidden'); }, 3500);
+    }
+
+    async function loadBulletins() {
+      const list = document.getElementById('bulletinList');
+      const empty = document.getElementById('emptyState');
+      list.innerHTML = '<div class="py-16 text-center text-slate-500 font-bold text-lg"><i class="fa-solid fa-circle-notch fa-spin text-3xl mb-3 text-indigo-600 block"></i>주보 목록을 불러오는 중...</div>';
+
+      try {
+        const url = `/api/bulletins?page=${currentPage}&q=${encodeURIComponent(currentQuery)}&type=${currentSearchType}&year=${currentYear}`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        document.getElementById('totalCount').innerText = data.total;
+        
+        if (currentQuery || currentYear !== 'all') {
+          const typeNames = { 
+            'all': '', 
+            'prayer': ' [기도자]', 
+            'preacher': ' [설교자]', 
+            'scripture': ' [본문성경]', 
+            'announcement': ' [교회소식]', 
+            'offering': ' [헌금명단]' 
+          };
+          const yearBadge = currentYear !== 'all' ? ` [${currentYear}년]` : '';
+          const queryText = currentQuery ? `"${currentQuery}"` : '';
+          
+          document.getElementById('activeQueryBadge').classList.remove('hidden');
+          document.getElementById('activeQueryBadge').classList.add('flex');
+          document.getElementById('activeQueryText').innerText = `${queryText}${typeNames[currentSearchType] || ''}${yearBadge}`;
+        } else {
+          document.getElementById('activeQueryBadge').classList.add('hidden');
+          document.getElementById('activeQueryBadge').classList.remove('flex');
+        }
+
+        if (!data.items || data.items.length === 0) {
+          list.innerHTML = '';
+          empty.classList.remove('hidden');
+          renderPagination(0, 1);
+          return;
+        }
+
+        empty.classList.add('hidden');
+        renderList(data.items);
+        renderPagination(data.total_pages, data.page);
+      } catch (err) {
+        list.innerHTML = `<div class="text-center text-rose-600 font-bold py-12">데이터를 불러오는 중 오류가 발생했습니다: ${err.message}</div>`;
+      }
+    }
+
+    // Helper: 검색어 매칭 위치 및 스니펫 발췌 함수
+    function findSearchMatches(item, query) {
+      if (!query) return [];
+      const q = query.toLowerCase().trim();
+      const matches = [];
+
+      // 1. 말씀 제목
+      if (item.sermon_title && item.sermon_title.toLowerCase().includes(q)) {
+        matches.push({ area: '말씀 제목', text: item.sermon_title, color: 'bg-indigo-100 text-indigo-900 border-indigo-300' });
+      } else if (item.title && item.title.toLowerCase().includes(q)) {
+        matches.push({ area: '게시글 제목', text: item.title, color: 'bg-slate-100 text-slate-800 border-slate-300' });
+      }
+
+      // 2. 본문 말씀
+      if (item.scripture && item.scripture.toLowerCase().includes(q)) {
+        matches.push({ area: '본문 말씀', text: item.scripture, color: 'bg-blue-100 text-blue-900 border-blue-300' });
+      }
+
+      // 3. 설교자
+      if (item.preacher && item.preacher.toLowerCase().includes(q)) {
+        matches.push({ area: '설교자', text: item.preacher, color: 'bg-purple-100 text-purple-900 border-purple-300' });
+      }
+
+      // 4. 헌금 명단 (offerings)
+      let off = item.offerings;
+      if (typeof off === 'string') {
+        try { off = JSON.parse(off); } catch(e) {}
+      }
+      if (typeof off === 'object' && off !== null) {
+        const offMatches = [];
+        for (const [cat, names] of Object.entries(off)) {
+          const namesStr = JSON.stringify(names);
+          if (namesStr.toLowerCase().includes(q) || cat.toLowerCase().includes(q)) {
+            let matchedNames = [];
+            if (Array.isArray(names)) {
+              matchedNames = names.filter(n => typeof n === 'string' && n.toLowerCase().includes(q));
+            } else if (typeof names === 'object') {
+              matchedNames = Object.entries(names).filter(([k, v]) => JSON.stringify(v).toLowerCase().includes(q)).map(([k, v]) => `${k}:${v}`);
+            }
+            const snippet = matchedNames.length > 0 ? matchedNames.join(', ') : cat;
+            offMatches.push(`${cat} (${snippet})`);
+          }
+        }
+        if (offMatches.length > 0) {
+          matches.push({ area: '헌금 명단', text: offMatches.join(' | '), color: 'bg-amber-100 text-amber-950 border-amber-300 font-extrabold' });
+        }
+      }
+
+      // 5. 재정 현황 (finances)
+      let fin = item.finances;
+      if (typeof fin === 'string') {
+        try { fin = JSON.parse(fin); } catch(e) {}
+      }
+      if (typeof fin === 'object' && fin !== null) {
+        const finStr = JSON.stringify(fin);
+        if (finStr.toLowerCase().includes(q)) {
+          const finMatches = [];
+          for (const section of ['수입', '지출', 'income', 'expense']) {
+            if (fin[section] && typeof fin[section] === 'object') {
+              for (const [k, v] of Object.entries(fin[section])) {
+                if (k.toLowerCase().includes(q) || String(v).includes(q)) {
+                  const numVal = typeof v === 'number' ? (v < 100000 ? v * 1000 : v).toLocaleString() + '원' : v;
+                  finMatches.push(`${section}-${k}: ${numVal}`);
+                }
+              }
+            }
+          }
+          matches.push({ area: '재정 결산', text: finMatches.length > 0 ? finMatches.join(' | ') : '재정 내역 일치', color: 'bg-emerald-100 text-emerald-950 border-emerald-300' });
+        }
+      }
+
+      // 6. 예배 봉사자 (servants)
+      let srv = item.servants;
+      if (typeof srv === 'string') {
+        try { srv = JSON.parse(srv); } catch(e) {}
+      }
+      if (typeof srv === 'object' && srv !== null) {
+        const srvMatches = [];
+        for (const [worship, details] of Object.entries(srv)) {
+          if (JSON.stringify(details).toLowerCase().includes(q) || worship.toLowerCase().includes(q)) {
+            srvMatches.push(`${worship}`);
+          }
+        }
+        if (srvMatches.length > 0) {
+          matches.push({ area: '예배 봉사자', text: srvMatches.join(', '), color: 'bg-rose-100 text-rose-950 border-rose-300' });
+        }
+      }
+
+      // 7. 교회 소식 (announcements)
+      let ann = item.announcements;
+      if (typeof ann === 'string') {
+        try { ann = JSON.parse(ann); } catch(e) {}
+      }
+      if (Array.isArray(ann)) {
+        const annMatches = [];
+        for (const itemAnn of ann) {
+          const content = typeof itemAnn === 'string' ? itemAnn : (itemAnn.content || JSON.stringify(itemAnn));
+          if (content.toLowerCase().includes(q)) {
+            annMatches.push(content.length > 50 ? content.slice(0, 50) + '...' : content);
+          }
+        }
+        if (annMatches.length > 0) {
+          matches.push({ area: '교회 소식', text: annMatches.join(' / '), color: 'bg-sky-100 text-sky-950 border-sky-300' });
+        }
+      }
+
+      return matches;
+    }
+
+    // Helper: 텍스트 내 검색어 노란색 하이라이트
+    function highlightQuery(text, query) {
+      if (!text || !query) return text;
+      const regex = new RegExp(`(${query.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')})`, 'gi');
+      return String(text).replace(regex, '<mark class="bg-amber-200 text-amber-950 font-black px-1 rounded shadow-xs">$1</mark>');
+    }
+    // Helper: 인도자 & 기도자 정밀 추출 (오직 9시, 11시, 수요예배만 추출)
+    function extractLeaderAndPrayer(servants) {
+      if (!servants) return { leader: '', prayer: '' };
+
+      let s = servants;
+      if (typeof s === 'string') {
+        try { s = JSON.parse(s); } catch(e) {}
+      }
+      if (typeof s !== 'object' || s === null) return { leader: '', prayer: '' };
+
+      function cleanPersonName(raw) {
+        if (!raw) return '';
+        let str = typeof raw === 'string' ? raw : JSON.stringify(raw);
+        if (['다음주', '위원', '찬양대', '[object', '안내', '주차', '차량', '헌금', '성경봉독', '설교', '축도'].some(x => str.includes(x))) return '';
+        str = str.replace(/^(?:대표기도|기도|인도)[\s:]*/g, '').trim();
+        if (str === '인도자' || str === '자' || str.length < 2) return '';
+        return str;
+      }
+
+      let leader = '';
+      const prayers = { '9시': '', '11시': '', '수요': '' };
+
+      const flatItems = [];
+      function walk(obj, path) {
+        if (typeof obj === 'object' && obj !== null) {
+          if (Array.isArray(obj)) {
+            obj.forEach(item => walk(item, path));
+          } else {
+            for (const [k, v] of Object.entries(obj)) {
+              const kStr = String(k);
+              if (['다음주', '안내', '주차', '차량', '헌금', '직원', '교역자', '성경봉독', '설교', '축도', '음악', '찬양대'].some(x => kStr.includes(x))) {
+                continue;
+              }
+              walk(v, path.concat(kStr));
+            }
+          }
+        } else if (obj !== undefined && obj !== null) {
+          flatItems.push({ path: path, val: String(obj) });
+        }
+      }
+
+      walk(s, []);
+
+      for (const item of flatItems) {
+        const fullPath = item.path.join(' ');
+        const valClean = cleanPersonName(item.val);
+        if (!valClean) continue;
+
+        // 인도자 추출
+        if (item.path.some(p => p.includes('인도')) && !leader) {
+          leader = valClean;
+        }
+
+        // 기도자 추출 (path 또는 키에 '기도' 포함)
+        const isPrayer = item.path.some(p => p.includes('기도')) || fullPath.includes('기도');
+        if (isPrayer) {
+          // 값 자체에 시간대가 포함된 경우 (예: "9시: 이진수 안수집사, 11시: 강석흔 장로" 또는 "김창수 안수집사(9:00)")
+          if (['9시', '11시', '9:00', '11:00', '수요'].some(k => valClean.includes(k))) {
+            const m9_pre = valClean.match(/([가-힣A-Za-z0-9\s]+?)\s*\(?(?:9시|1부|9:00)/);
+            const m11_pre = valClean.match(/([가-힣A-Za-z0-9\s]+?)\s*\(?(?:11시|2부|11:00)/);
+            const mw_pre = valClean.match(/([가-힣A-Za-z0-9\s]+?)\s*\(?(?:수요|수요일)/);
+            if (m9_pre && !prayers['9시']) prayers['9시'] = cleanPersonName(m9_pre[1]);
+            if (m11_pre && !prayers['11시']) prayers['11시'] = cleanPersonName(m11_pre[1]);
+            if (mw_pre && !prayers['수요']) prayers['수요'] = cleanPersonName(mw_pre[1]);
+
+            const m9 = valClean.match(/(?:9시|1부|9:00)[\s:]*([가-힣A-Za-z0-9,\s]+?)(?:,|\||11시|2부|11:00|$)/);
+            const m11 = valClean.match(/(?:11시|2부|11:00)[\s:]*([가-힣A-Za-z0-9,\s]+?)(?:,|\||수요|수요일|$)/);
+            const mw = valClean.match(/(?:수요|수요일)[\s:]*([가-힣A-Za-z0-9,\s]+?)(?:,|\||$)/);
+            if (m9 && !prayers['9시']) prayers['9시'] = cleanPersonName(m9[1]);
+            if (m11 && !prayers['11시']) prayers['11시'] = cleanPersonName(m11[1]);
+            if (mw && !prayers['수요']) prayers['수요'] = cleanPersonName(mw[1]);
+            continue;
+          }
+
+          // Path에 시간대가 명시된 경우 (예: ['9시예배', '대표기도'] 또는 ['기도', '9:00'])
+          if (['9시', '1부', '9:00'].some(x => fullPath.includes(x))) {
+            if (!prayers['9시']) prayers['9시'] = valClean;
+          } else if (['11시', '2부', '11:00'].some(x => fullPath.includes(x))) {
+            if (!prayers['11시']) prayers['11시'] = valClean;
+          } else if (['수요', '수요일'].some(x => fullPath.includes(x))) {
+            if (!prayers['수요']) prayers['수요'] = valClean;
+          }
+        }
+      }
+
+      const prayersList = [];
+      if (prayers['9시']) prayersList.push(`9시: ${prayers['9시']}`);
+      if (prayers['11시']) prayersList.push(`11시: ${prayers['11시']}`);
+      if (prayers['수요']) prayersList.push(`수요: ${prayers['수요']}`);
+
+      return {
+        leader: leader.trim(),
+        prayer: prayersList.join(' | ')
+      };
+    }
+
+    function renderList(items) {
+      const container = document.getElementById('bulletinList');
+      container.innerHTML = items.map(item => {
+        const isAnalyzed = item.status === 'analyzed';
+        const firstImg = item.image_urls && item.image_urls.length > 0 ? item.image_urls[0] : '';
+        const { leader, prayer } = extractLeaderAndPrayer(item.servants);
+        const searchMatches = currentQuery ? findSearchMatches(item, currentQuery) : [];
+
+        const sermonTitleDisplay = currentQuery ? highlightQuery(item.sermon_title || item.title, currentQuery) : (item.sermon_title || item.title);
+        const scriptureDisplay = currentQuery ? highlightQuery(item.scripture, currentQuery) : item.scripture;
+
+        return `
+          <div class="bg-white rounded-2xl border-2 ${searchMatches.length > 0 ? 'border-amber-400 ring-2 ring-amber-100 shadow-md' : 'border-slate-200 hover:border-indigo-400 shadow-sm'} transition-all p-5 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-5 group cursor-pointer" onclick="openDetailModal(${item.id})">
+            
+            <!-- Left Info Area -->
+            <div class="flex-1 flex flex-col space-y-3">
+              <!-- Top Badges & Date -->
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="px-3.5 py-1 rounded-xl text-sm font-black bg-indigo-600 text-white shadow-xs">
+                  ${item.date || '날짜 미상'}
+                </span>
+                <span class="font-extrabold text-slate-400 text-xs sm:text-sm">#${item.post_num || item.id}</span>
+                ${isAnalyzed ? '' : `
+                  <span class="text-amber-800 bg-amber-100 font-semibold px-2 py-0.5 rounded-lg text-xs">대기</span>
+                `}
+                <span class="text-slate-400 text-xs font-semibold ml-auto md:ml-2">등록: ${item.post_date ? item.post_date.split(' ')[0] : '-'}</span>
+              </div>
+
+              <!-- Sermon Title (말씀 제목) -->
+              <div>
+                <h3 class="font-black text-slate-950 group-hover:text-indigo-600 transition text-xl sm:text-2xl leading-snug">
+                  ${sermonTitleDisplay}
+                </h3>
+              </div>
+
+              <!-- Scripture (말씀 본문) -->
+              ${item.scripture ? `
+                <div class="flex items-center text-sm sm:text-base font-extrabold text-indigo-900 bg-indigo-50/70 px-3 py-1.5 rounded-xl border border-indigo-100 w-fit">
+                  <i class="fa-solid fa-book-bible mr-2 text-indigo-600"></i>
+                  <span>${scriptureDisplay}</span>
+                </div>
+              ` : ''}
+
+              <!-- Preacher, Leader, Prayer Row (설교자, 인도자, 기도자) -->
+              <div class="flex flex-wrap items-center gap-x-6 gap-y-2 pt-2.5 border-t border-slate-100 text-sm sm:text-base">
+                <div class="flex items-center space-x-1.5 whitespace-nowrap">
+                  <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md"><i class="fa-solid fa-user-tie text-indigo-500 mr-1"></i>설교자</span>
+                  <span class="${item.preacher ? 'text-slate-950 font-black' : 'text-slate-400 font-normal'}">${currentQuery ? highlightQuery(item.preacher, currentQuery) : (item.preacher || '-')}</span>
+                </div>
+                ${leader ? `
+                  <div class="flex items-center space-x-1.5 whitespace-nowrap">
+                    <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md"><i class="fa-solid fa-microphone text-emerald-500 mr-1"></i>인도자</span>
+                    <span class="text-slate-950 font-black">${currentQuery ? highlightQuery(leader, currentQuery) : leader}</span>
+                  </div>
+                ` : ''}
+                ${prayer ? `
+                  <div class="flex items-center space-x-1.5 min-w-0">
+                    <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md whitespace-nowrap flex-shrink-0"><i class="fa-solid fa-hands-praying text-amber-500 mr-1"></i>기도자</span>
+                    <span class="text-slate-900 font-bold truncate" title="${prayer}">${currentQuery ? highlightQuery(prayer, currentQuery) : prayer}</span>
+                  </div>
+                ` : ''}
+              </div>
+
+              <!-- Search Match Location Badges (검색어가 있을 때 매칭 위치 및 발췌문 표시) -->
+              ${searchMatches.length > 0 ? `
+                <div class="mt-2.5 p-3 rounded-xl bg-amber-50/70 border border-amber-200/80 flex flex-col space-y-1.5 text-xs sm:text-sm">
+                  <div class="flex items-center space-x-1.5 font-bold text-amber-900">
+                    <i class="fa-solid fa-magnifying-glass text-amber-600"></i>
+                    <span>검색어 '${currentQuery}' 일치 위치:</span>
+                  </div>
+                  <div class="flex flex-wrap gap-2 pt-0.5">
+                    ${searchMatches.map(m => `
+                      <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg border ${m.color} shadow-2xs">
+                        <span class="font-black underline">${m.area}</span>
+                        <span class="font-medium text-slate-800">${highlightQuery(m.text, currentQuery)}</span>
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+              ` : ''}
+
+            </div>
+
+            <!-- Right Thumbnail & Action Button -->
+            <div class="flex md:flex-col items-center md:items-end justify-between md:justify-center gap-3 border-t md:border-t-0 pt-3 md:pt-0 border-slate-100 flex-shrink-0">
+              ${firstImg ? `
+                <div class="relative w-20 h-24 sm:w-24 sm:h-28 rounded-xl overflow-hidden bg-slate-900 border-2 border-slate-200 group-hover:border-indigo-500 shadow-sm flex-shrink-0">
+                  <img src="${firstImg}" alt="주보 표지" class="w-full h-full object-cover object-top" loading="lazy">
+                  <span class="absolute bottom-1 right-1 bg-black/75 text-white text-[10px] font-black px-1.5 py-0.5 rounded">${item.image_urls.length}면</span>
+                </div>
+              ` : `
+                <div class="w-20 h-24 rounded-xl bg-slate-100 flex items-center justify-center text-slate-300 border border-slate-200">
+                  <i class="fa-regular fa-image text-2xl"></i>
+                </div>
+              `}
+              <button class="px-4 py-2 bg-slate-100 group-hover:bg-indigo-600 text-slate-700 group-hover:text-white rounded-xl text-xs sm:text-sm font-black transition flex items-center space-x-1.5">
+                <span>상세보기</span>
+                <i class="fa-solid fa-chevron-right text-xs"></i>
+              </button>
+            </div>
+
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderPagination(totalPages, activePage) {
+      const container = document.getElementById('pagination');
+      if (totalPages <= 1) {
+        container.innerHTML = '';
+        return;
+      }
+
+      let html = '';
+      if (activePage > 1) {
+        html += `<button onclick="changePage(${activePage - 1})" class="px-3.5 py-2 rounded-xl border-2 border-slate-300 font-bold text-sm hover:bg-slate-200"><i class="fa-solid fa-chevron-left"></i></button>`;
+      }
+      for (let p = 1; p <= totalPages; p++) {
+        if (p === activePage) {
+          html += `<button class="px-4 py-2 rounded-xl bg-indigo-600 text-white font-extrabold text-sm shadow-md">${p}</button>`;
+        } else if (p === 1 || p === totalPages || (p >= activePage - 2 && p <= activePage + 2)) {
+          html += `<button onclick="changePage(${p})" class="px-3.5 py-2 rounded-xl border-2 border-slate-300 font-bold text-sm hover:bg-slate-200">${p}</button>`;
+        }
+      }
+      if (activePage < totalPages) {
+        html += `<button onclick="changePage(${activePage + 1})" class="px-3.5 py-2 rounded-xl border-2 border-slate-300 font-bold text-sm hover:bg-slate-200"><i class="fa-solid fa-chevron-right"></i></button>`;
+      }
+      container.innerHTML = html;
+    }
+
+    function changePage(p) {
+      currentPage = p;
+      loadBulletins();
+      window.scrollTo({ top: 120, behavior: 'smooth' });
+    }
+
+    function handleSearch() {
+      const val = document.getElementById('searchInput').value.trim();
+      currentQuery = val;
+      currentPage = 1;
+      loadBulletins();
+    }
+
+    function setQuery(q) {
+      document.getElementById('searchInput').value = q;
+      currentQuery = q;
+      currentPage = 1;
+      loadBulletins();
+    }
+
+    function resetSearch() {
+      document.getElementById('searchInput').value = '';
+      currentQuery = '';
+      currentSearchType = 'all';
+      setSearchType('all');
+      currentYear = 'all';
+      const buttons = document.querySelectorAll('#yearButtons button');
+      buttons.forEach(btn => {
+        btn.className = 'px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition';
+      });
+      const activeBtn = document.getElementById('year_all');
+      if (activeBtn) {
+        activeBtn.className = 'px-2.5 py-1 rounded-lg font-bold bg-indigo-600 text-white transition shadow-xs';
+      }
+      currentPage = 1;
+      loadBulletins();
+    }
+
+    async function openDetailModal(id) {
+      currentBulletinId = id;
+      try {
+        const res = await fetch(`/api/bulletins/${id}`);
+        const data = await res.json();
+        
+        document.getElementById('modalTitle').innerText = data.title;
+        document.getElementById('modalDateBadge').innerText = data.date || '날짜 미상';
+        document.getElementById('modalOriginalLink').href = data.detail_url;
+
+        const statusBadge = document.getElementById('modalStatusBadge');
+        const analyzedNotice = document.getElementById('modalAnalyzedNotice');
+        const pendingNotice = document.getElementById('modalPendingNotice');
+
+        if (data.status === 'analyzed') {
+          statusBadge.className = 'px-3 py-1 rounded-xl text-xs sm:text-sm font-extrabold bg-emerald-100 text-emerald-900 border border-emerald-300';
+          statusBadge.innerText = '정리 완료';
+          analyzedNotice.classList.remove('hidden');
+          pendingNotice.classList.add('hidden');
+        } else {
+          statusBadge.className = 'px-3 py-1 rounded-xl text-xs sm:text-sm font-extrabold bg-amber-100 text-amber-900 border border-amber-300';
+          statusBadge.innerText = '대기';
+          analyzedNotice.classList.add('hidden');
+          pendingNotice.classList.remove('hidden');
+        }
+
+        document.getElementById('modalSermonTitle').innerText = data.sermon_title || '(제목 미기재)';
+        document.getElementById('modalScripture').innerText = data.scripture || '-';
+        document.getElementById('modalPreacher').innerText = data.preacher || '-';
+
+        // Finances (재정 현황 및 항목별 헌금 금액)
+        const financesDiv = document.getElementById('modalFinances');
+        const financeDate = document.getElementById('modalFinanceDate');
+        let financesData = data.finances;
+        if (typeof financesData === 'string') {
+          try { financesData = JSON.parse(financesData); } catch(e) {}
+        }
+        if (financesData && typeof financesData === 'object' && Object.keys(financesData).length > 0) {
+          financeDate.innerText = financesData.기준일자 || financesData.date || '';
+          let finHtml = '';
+          const inc = financesData.수입 || financesData.income;
+          const exp = financesData.지출 || financesData.expense;
+
+          if (inc && typeof inc === 'object') {
+            const totalInc = inc.총수입 ? Number(inc.총수입).toLocaleString() + '원' : (inc.total ? Number(inc.total * 1000).toLocaleString() + '원' : '');
+            finHtml += `
+              <div class="bg-white p-4 rounded-xl border-2 border-emerald-300 shadow-sm">
+                <div class="flex justify-between items-center mb-3 pb-2 border-b-2 border-emerald-100">
+                  <span class="font-black text-emerald-950 text-sm sm:text-base">[수입 헌금 결산]</span>
+                  <span class="text-emerald-700 font-black text-lg sm:text-xl">${totalInc}</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-sm sm:text-base">
+                  ${Object.entries(inc).filter(([k]) => !['총수입', 'total'].includes(k)).map(([k, v]) => {
+                    const numVal = typeof v === 'number' ? (v < 100000 ? v * 1000 : v) : v;
+                    return `
+                      <div class="bg-emerald-50/70 p-2.5 rounded-lg flex justify-between items-center border border-emerald-200/60">
+                        <span class="font-bold text-slate-700">${k}</span>
+                        <span class="font-black text-emerald-800">${typeof numVal === 'number' ? numVal.toLocaleString() + '원' : numVal}</span>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              </div>
+            `;
+          }
+
+          if (exp && typeof exp === 'object') {
+            const totalExp = exp.총지출 ? Number(exp.총지출).toLocaleString() + '원' : (exp.total ? Number(exp.total * 1000).toLocaleString() + '원' : '');
+            finHtml += `
+              <div class="bg-white p-4 rounded-xl border-2 border-slate-300 shadow-sm mt-3">
+                <div class="flex justify-between items-center mb-3 pb-2 border-b-2 border-slate-200">
+                  <span class="font-black text-slate-900 text-sm sm:text-base">[지출 결산]</span>
+                  <span class="text-slate-800 font-black text-lg sm:text-xl">${totalExp}</span>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-sm sm:text-base">
+                  ${Object.entries(exp).filter(([k]) => !['총지출', 'total'].includes(k)).map(([k, v]) => {
+                    const numVal = typeof v === 'number' ? (v < 100000 ? v * 1000 : v) : v;
+                    return `
+                      <div class="bg-slate-100 p-2.5 rounded-lg flex justify-between items-center border border-slate-200">
+                        <span class="font-bold text-slate-700">${k}</span>
+                        <span class="font-black text-slate-900">${typeof numVal === 'number' ? numVal.toLocaleString() + '원' : numVal}</span>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              </div>
+            `;
+          }
+
+          financesDiv.innerHTML = finHtml || '<p class="text-slate-500 font-medium italic">상세 내역 없음</p>';
+        } else {
+          financeDate.innerText = '';
+          financesDiv.innerHTML = '<p class="text-slate-500 font-medium italic">등록된 헌금 금액 통계가 없습니다.</p>';
+        }
+
+        // Offerings (헌금 명단)
+        const offeringsDiv = document.getElementById('modalOfferings');
+        let offeringsData = data.offerings;
+        if (typeof offeringsData === 'string') {
+          try { offeringsData = JSON.parse(offeringsData); } catch(e) {}
+        }
+        if (offeringsData && typeof offeringsData === 'object' && Object.keys(offeringsData).length > 0) {
+          offeringsDiv.innerHTML = Object.entries(offeringsData).map(([type, val]) => {
+            let namesHtml = '';
+            if (Array.isArray(val)) {
+              namesHtml = `<div class="flex flex-wrap gap-1.5 mt-2">${val.map(n => `<span class="bg-amber-100 text-amber-950 font-bold px-2.5 py-1 rounded-lg text-xs sm:text-sm border border-amber-300 shadow-xs">${typeof n === 'object' ? JSON.stringify(n) : n}</span>`).join('')}</div>`;
+            } else if (typeof val === 'object') {
+              namesHtml = `<div class="mt-2 space-y-1.5">${Object.entries(val).map(([k, v]) => `<div class="text-xs sm:text-sm"><span class="font-extrabold text-amber-900">${k}:</span> <span class="font-medium text-slate-800">${Array.isArray(v) ? v.join(', ') : v}</span></div>`).join('')}</div>`;
+            } else {
+              namesHtml = `<div class="text-sm font-medium text-slate-800 mt-1">${val}</div>`;
+            }
+            return `
+              <div class="bg-white p-3.5 rounded-xl border border-amber-300 shadow-xs">
+                <span class="font-black text-amber-950 text-sm sm:text-base">${type}</span>
+                ${namesHtml}
+              </div>
+            `;
+          }).join('');
+        } else {
+          offeringsDiv.innerHTML = '<p class="text-slate-500 font-medium italic">등록된 헌금 명단이 없습니다.</p>';
+        }
+
+        // Servants
+        const servantsDiv = document.getElementById('modalServants');
+        if (data.servants && typeof data.servants === 'object' && Object.keys(data.servants).length > 0) {
+          servantsDiv.innerHTML = Object.entries(data.servants).map(([worship, info]) => `
+            <div class="flex flex-col bg-white p-3 rounded-xl border border-slate-300">
+              <span class="font-black text-slate-900 text-sm sm:text-base mb-1">${worship}</span>
+              <span class="font-semibold text-slate-700 text-xs sm:text-sm">${typeof info === 'object' ? Object.entries(info).map(([k, v]) => `${k}: ${v}`).join(' | ') : info}</span>
+            </div>
+          `).join('');
+        } else {
+          servantsDiv.innerHTML = '<p class="text-slate-500 font-medium italic">등록된 봉사자 정보가 없습니다.</p>';
+        }
+
+        // Announcements
+        const annDiv = document.getElementById('modalAnnouncements');
+        if (data.announcements && Array.isArray(data.announcements) && data.announcements.length > 0) {
+          annDiv.innerHTML = data.announcements.map((ann, i) => {
+            const cat = ann.category ? `[${ann.category}] ` : '';
+            const txt = ann.content || (typeof ann === 'string' ? ann : JSON.stringify(ann));
+            return `
+              <div class="p-3 bg-white rounded-xl border border-slate-300 text-slate-900 font-medium text-sm sm:text-base leading-relaxed">
+                <span class="font-black text-indigo-700">${cat}</span>${txt}
+              </div>
+            `;
+          }).join('');
+        } else {
+          annDiv.innerHTML = '<p class="text-slate-500 font-medium italic">등록된 교회 소식이 없습니다.</p>';
+        }
+
+        // Images
+        const mainImg = document.getElementById('modalMainImage');
+        const imgNewTab = document.getElementById('modalImageNewTab');
+        const thumbs = document.getElementById('modalThumbnails');
+        
+        if (data.image_urls && data.image_urls.length > 0) {
+          setModalImage(data.image_urls[0]);
+          thumbs.innerHTML = data.image_urls.map((u, i) => `
+            <img src="${u}" onclick="setModalImage('${u}')" class="w-20 h-24 object-cover rounded-xl border-2 border-slate-300 hover:border-indigo-600 cursor-pointer transition flex-shrink-0 shadow-sm" alt="주보 ${i+1}">
+          `).join('');
+        } else {
+          mainImg.src = '';
+          thumbs.innerHTML = '<p class="text-sm text-slate-400">주보 이미지가 없습니다.</p>';
+        }
+
+        document.getElementById('detailModal').classList.remove('hidden');
+      } catch (err) {
+        showToast('상세 정보 로드 실패: ' + err.message, true);
+      }
+    }
+
+    function setModalImage(url) {
+      document.getElementById('modalMainImage').src = url;
+      document.getElementById('modalImageNewTab').href = url;
+    }
+
+    function closeDetailModal() {
+      document.getElementById('detailModal').classList.add('hidden');
+      currentBulletinId = null;
+    }
+
+    async function reanalyzeCurrent() {
+      if (!currentBulletinId) return;
+      const btn = document.getElementById('modalReanalyzeBtn');
+      const origText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i><span>데이터 정리 중...</span>';
+
+      try {
+        const res = await fetch(`/api/bulletins/${currentBulletinId}/analyze`, { method: 'POST' });
+        const data = await res.json();
+        if (res.ok) {
+          showToast('성공적으로 정리되었습니다!');
+          openDetailModal(currentBulletinId);
+          loadBulletins();
+        } else {
+          showToast(data.detail || '정리 실패', true);
+        }
+      } catch (err) {
+        showToast('요청 실패: ' + err.message, true);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = origText;
+      }
+    }
+
+    async function triggerCrawl() {
+      showToast('주보 동기화 작업을 시작합니다...');
+      try {
+        const res = await fetch('/api/crawl?limit=5', { method: 'POST' });
+        const data = await res.json();
+        showToast(data.message);
+        setTimeout(loadBulletins, 3000);
+      } catch (err) {
+        showToast('동기화 실패: ' + err.message, true);
+      }
+    }
+
+    function openApiKeyModal() {
+      document.getElementById('adminPasswordInput').value = '';
+      document.getElementById('apiKeyInput').value = '';
+      document.getElementById('apiKeyModal').classList.remove('hidden');
+      setTimeout(() => document.getElementById('adminPasswordInput').focus(), 100);
+    }
+
+    function closeApiKeyModal() {
+      document.getElementById('apiKeyModal').classList.add('hidden');
+    }
+
+    async function saveApiKey() {
+      const pwd = document.getElementById('adminPasswordInput').value.trim();
+      const val = document.getElementById('apiKeyInput').value.trim();
+
+      if (!pwd) {
+        showToast('관리자 비밀번호를 입력해 주세요.', true);
+        document.getElementById('adminPasswordInput').focus();
+        return;
+      }
+      if (!val) {
+        showToast('Gemini API 키를 입력해 주세요.', true);
+        document.getElementById('apiKeyInput').focus();
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/settings/key', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gemini_api_key: val, password: pwd })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showToast(data.message || 'Gemini API 키가 저장되었습니다.');
+          closeApiKeyModal();
+        } else {
+          showToast(data.detail || '비밀번호가 올바르지 않습니다.', true);
+          document.getElementById('adminPasswordInput').focus();
+        }
+      } catch (err) {
+        showToast('저장 실패: ' + err.message, true);
+      }
+    }
+  </script>
+</body>
+</html>
