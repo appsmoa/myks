@@ -2,7 +2,7 @@ import os
 import json
 from typing import Optional, List
 from fastapi import FastAPI, Request, Query, BackgroundTasks, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -15,6 +15,39 @@ import batch_analyze
 load_dotenv()
 
 app = FastAPI(title="금성교회 주보 아카이브 & 검색 시스템")
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    # 검색엔진 및 AI 크롤러 색인/캐시 전면 차단
+    response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive, nosnippet"
+    return response
+
+@app.get("/robots.txt", response_class=PlainTextResponse)
+def get_robots_txt():
+    return (
+        "User-agent: *\n"
+        "Disallow: /\n\n"
+        "# Block AI Scrapers & Crawlers\n"
+        "User-agent: GPTBot\n"
+        "Disallow: /\n"
+        "User-agent: ChatGPT-User\n"
+        "Disallow: /\n"
+        "User-agent: CCBot\n"
+        "Disallow: /\n"
+        "User-agent: Google-Extended\n"
+        "Disallow: /\n"
+        "User-agent: ClaudeBot\n"
+        "Disallow: /\n"
+        "User-agent: anthropic-ai\n"
+        "Disallow: /\n"
+        "User-agent: Bytespider\n"
+        "Disallow: /\n"
+        "User-agent: PerplexityBot\n"
+        "Disallow: /\n"
+        "User-agent: FacebookBot\n"
+        "Disallow: /\n"
+    )
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
