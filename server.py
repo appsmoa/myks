@@ -11,6 +11,7 @@ from dotenv import load_dotenv, set_key
 import database
 import crawler
 import batch_analyze
+import github_sync
 
 load_dotenv()
 
@@ -166,7 +167,8 @@ def api_get_bulletin(b_id: int, request: Request, key: Optional[str] = None):
     return record
 
 class SettingsPayload(BaseModel):
-    gemini_api_key: str
+    gemini_api_key: Optional[str] = None
+    github_token: Optional[str] = None
     password: str
 
 @app.post("/api/settings/key")
@@ -174,25 +176,52 @@ def api_set_key(payload: SettingsPayload):
     if payload.password.strip() != "4123":
         raise HTTPException(status_code=403, detail="관리자 비밀번호가 올바르지 않습니다.")
     
-    key = payload.gemini_api_key.strip()
-    if not key:
-        raise HTTPException(status_code=400, detail="Gemini API 키를 입력해 주세요.")
-        
-    os.environ["GEMINI_API_KEY"] = key
     env_file = os.path.join(BASE_DIR, ".env")
-    try:
-        set_key(env_file, "GEMINI_API_KEY", key)
-    except Exception as e:
-        with open(env_file, "w", encoding="utf-8") as f:
-            f.write(f"GEMINI_API_KEY={key}\n")
-    return {"status": "ok", "message": "Gemini API 키가 성공적으로 저장되었습니다."}
+    updated_items = []
+    
+    if payload.gemini_api_key and payload.gemini_api_key.strip():
+        key = payload.gemini_api_key.strip()
+        os.environ["GEMINI_API_KEY"] = key
+        try:
+            set_key(env_file, "GEMINI_API_KEY", key)
+        except Exception:
+            pass
+        updated_items.append("Gemini API 키")
+        
+    if payload.github_token and payload.github_token.strip():
+        g_token = payload.github_token.strip()
+        os.environ["GITHUB_TOKEN"] = g_token
+        try:
+            set_key(env_file, "GITHUB_TOKEN", g_token)
+        except Exception:
+            pass
+        updated_items.append("GitHub 토큰")
+        
+    if not updated_items:
+        raise HTTPException(status_code=400, detail="저장할 키 또는 토큰을 입력해 주세요.")
+        
+    return {"status": "ok", "message": f"{', '.join(updated_items)}가 성공적으로 저장되었습니다."}
+
+@app.post("/api/sync-github")
+def api_sync_github(background_tasks: BackgroundTasks):
+    def run_sync():
+        github_sync.sync_db_to_github()
+    background_tasks.add_task(run_sync)
+    return {"status": "ok", "message": "GitHub로 최신 DB 자동 저장을 시작했습니다."}
 
 @app.post("/api/crawl")
 def api_trigger_crawl(background_tasks: BackgroundTasks, limit: int = 5, use_vision: bool = True):
     def run_job():
         crawler.run_crawler(start_page=1, end_page=1, limit=limit, use_vision=use_vision)
+        # 크롤링 및 DB 저장 완료 후, 자동으로 GitHub에 최신 bulletin.db 커밋 & 푸시!
+        try:
+            res = github_sync.sync_db_to_github()
+            print("[Auto-Sync Result]", res)
+        except Exception as e:
+            print(f"[GitHub Auto-Sync Error] {e}")
     
     background_tasks.add_task(run_job)
+    return {"status": "ok", "message": f"최신 {limit}건 크롤링 및 GitHub 자동 동기화 작업이 시작되었습니다."}
     return {"status": "ok", "message": f"최신 {limit}건 크롤링 및 정리 백그라운드 작업이 시작되었습니다."}
 
 @app.post("/api/bulletins/{b_id}/analyze")
