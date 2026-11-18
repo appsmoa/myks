@@ -638,6 +638,147 @@
       }
     }
 
+    // 개역개정 성경 66권 축약어 및 별칭 매핑 테이블 (JS용)
+    const BIBLE_BOOKS = [
+      ['요한일서', '요일', ['요한일서', '요한1서', '요일']],
+      ['요한이서', '요이', ['요한이서', '요한2서', '요이']],
+      ['요한삼서', '요삼', ['요한삼서', '요한3서', '요삼']],
+      ['사무엘상', '삼상', ['사무엘상', '삼상']],
+      ['사무엘하', '삼하', ['사무엘하', '삼하']],
+      ['열왕기상', '왕상', ['열왕기상', '왕상']],
+      ['열왕기하', '왕하', ['열왕기하', '왕하']],
+      ['역대상', '대상', ['역대상', '대상']],
+      ['역대하', '대하', ['역대하', '대하']],
+      ['고린도전서', '고전', ['고린도전서', '고린도전', '고전']],
+      ['고린도후서', '고후', ['고린도후서', '고린도후', '고후']],
+      ['데살로니가전서', '살전', ['데살로니가전서', '데살로니가전', '살전']],
+      ['데살로니가후서', '살후', ['데살로니가후서', '데살로니가후', '살후']],
+      ['디모데전서', '딤전', ['디모데전서', '디모데전', '딤전']],
+      ['디모데후서', '딤후', ['디모데후서', '디모데후', '딤후']],
+      ['베드로전서', '벧전', ['베드로전서', '베드로전', '벧전']],
+      ['베드로후서', '벧후', ['베드로후서', '베드로후', '벧후']],
+      ['예레미야애가', '애', ['예레미야애가', '애가', '애']],
+      ['요한계시록', '계', ['요한계시록', '계시록', '계']],
+      ['사도행전', '행', ['사도행전', '사도', '행전', '행']],
+      ['마태복음', '마', ['마태복음', '마태', '마']],
+      ['마가복음', '막', ['마가복음', '마가', '막']],
+      ['누가복음', '눅', ['누가복음', '누가', '눅']],
+      ['요한복음', '요', ['요한복음', '요한', '요']],
+      ['로마서', '롬', ['로마서', '로마', '롬']],
+      ['갈라디아서', '갈', ['갈라디아서', '갈라디아', '갈']],
+      ['에베소서', '엡', ['에베소서', '에베소', '엡']],
+      ['빌립보서', '빌', ['빌립보서', '빌립보', '빌']],
+      ['골로새서', '골', ['골로새서', '골로새', '골']],
+      ['디도서', '딛', ['디도서', '디도', '딛']],
+      ['빌레몬서', '몬', ['빌레몬서', '빌레몬', '몬']],
+      ['히브리서', '히', ['히브리서', '히브리', '히']],
+      ['야고보서', '약', ['야고보서', '야고보', '약']],
+      ['유다서', '유', ['유다서', '유다', '유']],
+      ['창세기', '창', ['창세기', '창세', '창']],
+      ['출애굽기', '출', ['출애굽기', '출애굽', '출']],
+      ['레위기', '레', ['레위기', '레위', '레']],
+      ['민수기', '민', ['민수기', '민수', '민']],
+      ['신명기', '신', ['신명기', '신명', '신']],
+      ['여호수아', '수', ['여호수아', '여호수아서', '수']],
+      ['사사기', '삿', ['사사기', '사사', '삿']],
+      ['룻기', '룻', ['룻기', '룻']],
+      ['에스라', '스', ['에스라', '스라', '스']],
+      ['느헤미야', '느', ['느헤미야', '느헤', '느']],
+      ['에스더', '에', ['에스더', '에스', '에']],
+      ['욥기', '욥', ['욥기', '욥']],
+      ['시편', '시', ['시편', '시']],
+      ['잠언', '잠', ['잠언', '잠']],
+      ['전도서', '전', ['전도서', '전도', '전']],
+      ['아가', '아', ['아가서', '아가', '아']],
+      ['이사야', '사', ['이사야', '이사', '사']],
+      ['예레미야', '렘', ['예레미야', '예레', '렘']],
+      ['에스겔', '겔', ['에스겔', '에스겔서', '겔']],
+      ['다니엘', '단', ['다니엘', '다니', '단']],
+      ['호세아', '호', ['호세아', '호세', '호']],
+      ['요엘', '욜', ['요엘', '욜']],
+      ['아모스', '암', ['아모스', '아모', '암']],
+      ['오바댜', '옵', ['오바댜', '오바', '옵']],
+      ['요나', '욘', ['요나', '욘']],
+      ['미가', '미', ['미가', '미']],
+      ['나훔', '나', ['나훔', '나']],
+      ['하박국', '합', ['하박국', '하박', '합']],
+      ['스바냐', '습', ['스바냐', '스바', '습']],
+      ['학개', '학', ['학개', '학']],
+      ['스가랴', '슥', ['스가랴', '스가', '슥']],
+      ['말라기', '말', ['말라기', '말라', '말']]
+    ];
+
+    function matchScriptureJS(scripture, query) {
+      if (!scripture || !query) return false;
+      const s = scripture.trim();
+      const q = query.trim().toLowerCase();
+      if (s.toLowerCase().includes(q)) return true;
+
+      let matchedAbbr = null;
+      let remainingQ = query.trim();
+      for (const [fullName, abbr, aliases] of BIBLE_BOOKS) {
+        const cands = Array.from(new Set([fullName, abbr, ...aliases])).sort((a, b) => b.length - a.length);
+        for (const cand of cands) {
+          if (remainingQ.startsWith(cand)) {
+            matchedAbbr = abbr;
+            remainingQ = remainingQ.slice(cand.length).trim();
+            break;
+          }
+        }
+        if (matchedAbbr) break;
+      }
+
+      if (!matchedAbbr) return false;
+
+      const cleanQ = remainingQ.replace(/장/g, ':').replace(/편/g, '').replace(/절.*/g, '').replace(/[^\d:]/g, '').replace(/^:+|:+$/g, '');
+      const parts = cleanQ.split(':');
+      const qCh = parts[0] ? parseInt(parts[0], 10) : null;
+      const qV = parts[1] ? parseInt(parts[1], 10) : null;
+
+      const escapedAbbr = matchedAbbr.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const pattern = new RegExp(`(?:^|[\\s,/|])${escapedAbbr}\\s*[:\\s]*([0-9:~\\-, ]+)`, 'g');
+      const matches = Array.from(s.matchAll(pattern));
+
+      if (matches.length === 0) {
+        if (qCh === null) {
+          const simplePat = new RegExp(`(?:^|[\\s,/|])${escapedAbbr}(?:\\b|[\\s,/|:]|$)`);
+          return simplePat.test(s);
+        }
+        return false;
+      }
+
+      if (qCh === null) return true;
+
+      for (const m of matches) {
+        const rawRef = m[1].trim();
+        const segments = rawRef.split(',').map(x => x.trim());
+        let currCh = null;
+        for (const seg of segments) {
+          const mRef = seg.match(/^(\d+)(?::(\d+)(?:[~\-](\d+))?)?/);
+          if (mRef) {
+            currCh = parseInt(mRef[1], 10);
+            let tVs = mRef[2] ? parseInt(mRef[2], 10) : null;
+            let tVe = mRef[3] ? parseInt(mRef[3], 10) : tVs;
+            if (tVs === null) {
+              const mRange = seg.match(/^(\d+)[~\-](\d+)/);
+              if (mRange) {
+                tVs = parseInt(mRange[1], 10);
+                tVe = parseInt(mRange[2], 10);
+              }
+            }
+            if (currCh === qCh) {
+              if (qV === null) return true;
+              if (tVs !== null) {
+                const end = tVe !== null ? tVe : tVs;
+                if (tVs <= qV && qV <= end) return true;
+              }
+            }
+          }
+        }
+      }
+      return false;
+    }
+
     // Helper: 검색어 매칭 위치 및 스니펫 발췌 함수 (탭 필터 선택 시 해당 탭 영역에서만 엄격히 검색)
     function findSearchMatches(item, query, searchType = 'all') {
       if (!query) return [];
@@ -669,9 +810,9 @@
         return matches;
       }
 
-      // 3. 본문성경 탭 선택 시 -> 오직 성경 구절만 검사
+      // 3. 본문성경 탭 선택 시 -> 오직 성경 구절만 검사 (축약어 및 풀네임 상호 매칭)
       if (searchType === 'scripture') {
-        if (item.scripture && item.scripture.toLowerCase().includes(q)) {
+        if (item.scripture && matchScriptureJS(item.scripture, query)) {
           matches.push({ area: '본문 말씀', text: item.scripture, color: 'bg-blue-100 text-blue-900 border-blue-300 font-extrabold' });
         }
         return matches;
@@ -735,7 +876,7 @@
       }
 
       // 2) 본문 말씀
-      if (item.scripture && item.scripture.toLowerCase().includes(q)) {
+      if (item.scripture && matchScriptureJS(item.scripture, query)) {
         matches.push({ area: '본문 말씀', text: item.scripture, color: 'bg-blue-100 text-blue-900 border-blue-300' });
       }
 
