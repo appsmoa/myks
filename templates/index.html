@@ -30,21 +30,6 @@
           <h1 class="font-black text-xl sm:text-2xl leading-none text-slate-950">금성교회 주보</h1>
         </div>
       </div>
-
-      <div class="flex items-center space-x-2 sm:space-x-3">
-        <button id="batchAnalyzeBtn" onclick="triggerBatchAnalyze()" class="px-3.5 py-2 text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 rounded-xl shadow-md flex items-center space-x-1.5 transition">
-          <i class="fa-solid fa-arrows-rotate text-sm"></i>
-          <span id="batchBtnText">전체 정리</span>
-        </button>
-        <button onclick="openApiKeyModal()" class="hidden sm:flex px-3 py-2 text-xs sm:text-sm font-semibold rounded-xl border-2 border-slate-300 hover:bg-slate-50 items-center space-x-1.5 transition shadow-xs">
-          <i class="fa-solid fa-key text-amber-500"></i>
-          <span>API 키</span>
-        </button>
-        <button onclick="triggerCrawl()" class="px-3 py-2 text-xs sm:text-sm font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-xl shadow-xs flex items-center space-x-1.5 transition">
-          <i class="fa-solid fa-cloud-arrow-down"></i>
-          <span>동기화</span>
-        </button>
-      </div>
     </div>
   </header>
 
@@ -125,8 +110,8 @@
   <!-- Main Content -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
     
-    <!-- Meta Bar & Analysis Progress -->
-    <div class="bg-white p-4 sm:p-5 rounded-2xl border-2 border-slate-300 shadow-sm mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <!-- List Meta Info -->
+    <div class="mb-5 flex items-center justify-between">
       <div class="flex items-center space-x-3">
         <div class="text-base sm:text-lg font-black text-slate-900">
           주보 목록 (<span id="totalCount" class="text-indigo-600 font-black text-xl">0</span>건)
@@ -135,23 +120,6 @@
           <span id="activeQueryText"></span>
           <button onclick="resetSearch()" class="ml-1.5 hover:text-indigo-700"><i class="fa-solid fa-xmark"></i></button>
         </span>
-      </div>
-
-      <!-- Realtime Progress Bar -->
-      <div class="w-full md:w-80 flex flex-col space-y-1.5">
-        <div class="flex justify-between items-center text-xs sm:text-sm font-bold">
-          <span class="flex items-center text-slate-700">
-            <i class="fa-solid fa-list-check text-indigo-600 mr-1.5"></i>정리 진행률
-          </span>
-          <span id="progressText" class="text-indigo-700 font-extrabold">0 / 0건 (0%)</span>
-        </div>
-        <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
-          <div id="progressBar" class="bg-gradient-to-r from-indigo-500 to-violet-600 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
-        </div>
-        <div id="runningBadge" class="hidden items-center justify-end space-x-1.5 text-xs font-bold text-violet-700">
-          <i class="fa-solid fa-circle-notch fa-spin"></i>
-          <span>자동 정리 진행 중...</span>
-        </div>
       </div>
     </div>
 
@@ -201,9 +169,55 @@
   </div>
   {% endif %}
 
-  <!-- Footer -->
-  <footer class="bg-white border-t border-slate-300 py-6 text-center text-sm font-medium text-slate-500">
-    <p>© 금성교회 주보 (출처: <a href="https://myks.kr/Board/Index/110" target="_blank" class="underline hover:text-indigo-600 font-bold">myks.kr</a>)</p>
+  <!-- Footer (하단 관리자 기능 및 진행률 배치) -->
+  <footer class="bg-white border-t border-slate-300 py-6 text-slate-500 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col space-y-5">
+      
+      <!-- 하단 관리 기능 & 정리 진행률 바 -->
+      <div class="p-4 sm:p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <!-- 버튼들 -->
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-xs font-bold text-slate-400 mr-1 flex items-center">
+            <i class="fa-solid fa-sliders mr-1 text-slate-500"></i>관리:
+          </span>
+          <button id="batchAnalyzeBtn" onclick="triggerBatchAnalyze()" class="px-3.5 py-2 text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 rounded-xl shadow-2xs flex items-center space-x-1.5 transition">
+            <i class="fa-solid fa-arrows-rotate text-xs"></i>
+            <span id="batchBtnText">전체 정리</span>
+          </button>
+          <button onclick="openApiKeyModal()" class="px-3 py-2 text-xs sm:text-sm font-semibold rounded-xl border border-slate-300 bg-white hover:bg-slate-100 flex items-center space-x-1.5 transition text-slate-700 shadow-2xs">
+            <i class="fa-solid fa-key text-amber-500"></i>
+            <span>API 키</span>
+          </button>
+          <button onclick="triggerCrawl()" class="px-3 py-2 text-xs sm:text-sm font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl shadow-2xs flex items-center space-x-1.5 transition">
+            <i class="fa-solid fa-cloud-arrow-down text-indigo-600"></i>
+            <span>동기화</span>
+          </button>
+        </div>
+
+        <!-- 하단 정리 진행률 -->
+        <div class="w-full md:w-80 flex flex-col space-y-1.5">
+          <div class="flex justify-between items-center text-xs font-bold">
+            <span class="flex items-center text-slate-600">
+              <i class="fa-solid fa-list-check text-indigo-600 mr-1.5"></i>정리 진행률
+            </span>
+            <span id="progressText" class="text-indigo-700 font-extrabold">0 / 0건 (0%)</span>
+          </div>
+          <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+            <div id="progressBar" class="bg-gradient-to-r from-indigo-500 to-violet-600 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+          <div id="runningBadge" class="hidden items-center justify-end space-x-1.5 text-xs font-bold text-violet-700">
+            <i class="fa-solid fa-circle-notch fa-spin"></i>
+            <span>자동 정리 진행 중...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 출처 및 카피라이트 -->
+      <div class="text-center text-xs sm:text-sm font-medium text-slate-400">
+        <p>© 금성교회 주보 (출처: <a href="https://myks.kr/Board/Index/110" target="_blank" class="underline hover:text-indigo-600 font-bold">myks.kr</a>)</p>
+      </div>
+
+    </div>
   </footer>
 
   <!-- Bulletin Detail Modal -->
