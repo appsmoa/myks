@@ -632,37 +632,112 @@
       }
     }
 
-    // Helper: 검색어 매칭 위치 및 스니펫 발췌 함수
-    function findSearchMatches(item, query) {
+    // Helper: 검색어 매칭 위치 및 스니펫 발췌 함수 (탭 필터 선택 시 해당 탭 영역에서만 엄격히 검색)
+    function findSearchMatches(item, query, searchType = 'all') {
       if (!query) return [];
       const q = query.toLowerCase().trim();
       const matches = [];
 
-      // 1. 말씀 제목
+      // 1. 기도자 탭 선택 시 -> 오직 실제 대표기도자만 엄격 검사
+      if (searchType === 'prayer') {
+        const { prayer } = extractLeaderAndPrayer(item.servants);
+        if (prayer && prayer.toLowerCase().includes(q)) {
+          matches.push({ area: '기도자', text: prayer, color: 'bg-amber-100 text-amber-950 border-amber-300 font-extrabold' });
+        }
+        return matches;
+      }
+
+      // 2. 설교자 탭 선택 시 -> 오직 설교자만 검사
+      if (searchType === 'preacher') {
+        if (item.preacher && item.preacher.toLowerCase().includes(q)) {
+          matches.push({ area: '설교자', text: item.preacher, color: 'bg-purple-100 text-purple-900 border-purple-300 font-extrabold' });
+        }
+        return matches;
+      }
+
+      // 3. 본문성경 탭 선택 시 -> 오직 성경 구절만 검사
+      if (searchType === 'scripture') {
+        if (item.scripture && item.scripture.toLowerCase().includes(q)) {
+          matches.push({ area: '본문 말씀', text: item.scripture, color: 'bg-blue-100 text-blue-900 border-blue-300 font-extrabold' });
+        }
+        return matches;
+      }
+
+      // 4. 교회소식 탭 선택 시 -> 오직 교회 소식/광고만 검사
+      if (searchType === 'announcement') {
+        let ann = item.announcements;
+        if (typeof ann === 'string') {
+          try { ann = JSON.parse(ann); } catch(e) {}
+        }
+        if (Array.isArray(ann)) {
+          const annMatches = [];
+          for (const itemAnn of ann) {
+            const content = typeof itemAnn === 'string' ? itemAnn : (itemAnn.content || JSON.stringify(itemAnn));
+            if (content.toLowerCase().includes(q)) {
+              annMatches.push(content.length > 50 ? content.slice(0, 50) + '...' : content);
+            }
+          }
+          if (annMatches.length > 0) {
+            matches.push({ area: '교회 소식', text: annMatches.join(' / '), color: 'bg-sky-100 text-sky-950 border-sky-300 font-extrabold' });
+          }
+        }
+        return matches;
+      }
+
+      // 5. 헌금명단 탭 선택 시 -> 오직 헌금 명단만 검사
+      if (searchType === 'offering') {
+        let off = item.offerings;
+        if (typeof off === 'string') {
+          try { off = JSON.parse(off); } catch(e) {}
+        }
+        if (typeof off === 'object' && off !== null) {
+          const offMatches = [];
+          for (const [cat, names] of Object.entries(off)) {
+            const namesStr = JSON.stringify(names);
+            if (namesStr.toLowerCase().includes(q) || cat.toLowerCase().includes(q)) {
+              let matchedNames = [];
+              if (Array.isArray(names)) {
+                matchedNames = names.filter(n => typeof n === 'string' && n.toLowerCase().includes(q));
+              } else if (typeof names === 'object') {
+                matchedNames = Object.entries(names).filter(([k, v]) => JSON.stringify(v).toLowerCase().includes(q)).map(([k, v]) => `${k}:${v}`);
+              }
+              const snippet = matchedNames.length > 0 ? matchedNames.join(', ') : cat;
+              offMatches.push(`${cat} (${snippet})`);
+            }
+          }
+          if (offMatches.length > 0) {
+            matches.push({ area: '헌금 명단', text: offMatches.join(' | '), color: 'bg-amber-100 text-amber-950 border-amber-300 font-extrabold' });
+          }
+        }
+        return matches;
+      }
+
+      // 6. [전체] 탭일 경우 -> 모든 항목 통합 검색
+      // 1) 말씀 제목
       if (item.sermon_title && item.sermon_title.toLowerCase().includes(q)) {
         matches.push({ area: '말씀 제목', text: item.sermon_title, color: 'bg-indigo-100 text-indigo-900 border-indigo-300' });
       } else if (item.title && item.title.toLowerCase().includes(q)) {
         matches.push({ area: '게시글 제목', text: item.title, color: 'bg-slate-100 text-slate-800 border-slate-300' });
       }
 
-      // 2. 본문 말씀
+      // 2) 본문 말씀
       if (item.scripture && item.scripture.toLowerCase().includes(q)) {
         matches.push({ area: '본문 말씀', text: item.scripture, color: 'bg-blue-100 text-blue-900 border-blue-300' });
       }
 
-      // 3. 설교자
+      // 3) 설교자
       if (item.preacher && item.preacher.toLowerCase().includes(q)) {
         matches.push({ area: '설교자', text: item.preacher, color: 'bg-purple-100 text-purple-900 border-purple-300' });
       }
 
-      // 4. 헌금 명단 (offerings)
-      let off = item.offerings;
-      if (typeof off === 'string') {
-        try { off = JSON.parse(off); } catch(e) {}
+      // 4) 헌금 명단
+      let offAll = item.offerings;
+      if (typeof offAll === 'string') {
+        try { offAll = JSON.parse(offAll); } catch(e) {}
       }
-      if (typeof off === 'object' && off !== null) {
+      if (typeof offAll === 'object' && offAll !== null) {
         const offMatches = [];
-        for (const [cat, names] of Object.entries(off)) {
+        for (const [cat, names] of Object.entries(offAll)) {
           const namesStr = JSON.stringify(names);
           if (namesStr.toLowerCase().includes(q) || cat.toLowerCase().includes(q)) {
             let matchedNames = [];
@@ -680,54 +755,20 @@
         }
       }
 
-      // 5. 재정 현황 (finances)
-      let fin = item.finances;
-      if (typeof fin === 'string') {
-        try { fin = JSON.parse(fin); } catch(e) {}
-      }
-      if (typeof fin === 'object' && fin !== null) {
-        const finStr = JSON.stringify(fin);
-        if (finStr.toLowerCase().includes(q)) {
-          const finMatches = [];
-          for (const section of ['수입', '지출', 'income', 'expense']) {
-            if (fin[section] && typeof fin[section] === 'object') {
-              for (const [k, v] of Object.entries(fin[section])) {
-                if (k.toLowerCase().includes(q) || String(v).includes(q)) {
-                  const numVal = typeof v === 'number' ? (v < 100000 ? v * 1000 : v).toLocaleString() + '원' : v;
-                  finMatches.push(`${section}-${k}: ${numVal}`);
-                }
-              }
-            }
-          }
-          matches.push({ area: '재정 결산', text: finMatches.length > 0 ? finMatches.join(' | ') : '재정 내역 일치', color: 'bg-emerald-100 text-emerald-950 border-emerald-300' });
-        }
+      // 5) 기도자 & 예배 봉사자
+      const { prayer: prayerAll } = extractLeaderAndPrayer(item.servants);
+      if (prayerAll && prayerAll.toLowerCase().includes(q)) {
+        matches.push({ area: '기도자', text: prayerAll, color: 'bg-amber-100 text-amber-950 border-amber-300 font-extrabold' });
       }
 
-      // 6. 예배 봉사자 (servants)
-      let srv = item.servants;
-      if (typeof srv === 'string') {
-        try { srv = JSON.parse(srv); } catch(e) {}
+      // 6) 교회 소식
+      let annAll = item.announcements;
+      if (typeof annAll === 'string') {
+        try { annAll = JSON.parse(annAll); } catch(e) {}
       }
-      if (typeof srv === 'object' && srv !== null) {
-        const srvMatches = [];
-        for (const [worship, details] of Object.entries(srv)) {
-          if (JSON.stringify(details).toLowerCase().includes(q) || worship.toLowerCase().includes(q)) {
-            srvMatches.push(`${worship}`);
-          }
-        }
-        if (srvMatches.length > 0) {
-          matches.push({ area: '예배 봉사자', text: srvMatches.join(', '), color: 'bg-rose-100 text-rose-950 border-rose-300' });
-        }
-      }
-
-      // 7. 교회 소식 (announcements)
-      let ann = item.announcements;
-      if (typeof ann === 'string') {
-        try { ann = JSON.parse(ann); } catch(e) {}
-      }
-      if (Array.isArray(ann)) {
+      if (Array.isArray(annAll)) {
         const annMatches = [];
-        for (const itemAnn of ann) {
+        for (const itemAnn of annAll) {
           const content = typeof itemAnn === 'string' ? itemAnn : (itemAnn.content || JSON.stringify(itemAnn));
           if (content.toLowerCase().includes(q)) {
             annMatches.push(content.length > 50 ? content.slice(0, 50) + '...' : content);
@@ -849,10 +890,15 @@
         const isAnalyzed = item.status === 'analyzed';
         const firstImg = item.image_urls && item.image_urls.length > 0 ? item.image_urls[0] : '';
         const { leader, prayer } = extractLeaderAndPrayer(item.servants);
-        const searchMatches = currentQuery ? findSearchMatches(item, currentQuery) : [];
+        const searchMatches = currentQuery ? findSearchMatches(item, currentQuery, currentSearchType) : [];
 
-        const sermonTitleDisplay = currentQuery ? highlightQuery(item.sermon_title || item.title, currentQuery) : (item.sermon_title || item.title);
-        const scriptureDisplay = currentQuery ? highlightQuery(item.scripture, currentQuery) : item.scripture;
+        const shouldHighlightTitle = currentQuery && currentSearchType === 'all';
+        const shouldHighlightScripture = currentQuery && ['all', 'scripture'].includes(currentSearchType);
+        const shouldHighlightPreacher = currentQuery && ['all', 'preacher'].includes(currentSearchType);
+        const shouldHighlightPrayer = currentQuery && ['all', 'prayer'].includes(currentSearchType);
+
+        const sermonTitleDisplay = shouldHighlightTitle ? highlightQuery(item.sermon_title || item.title, currentQuery) : (item.sermon_title || item.title);
+        const scriptureDisplay = shouldHighlightScripture ? highlightQuery(item.scripture, currentQuery) : item.scripture;
 
         return `
           <div class="bg-white rounded-2xl border-2 ${searchMatches.length > 0 ? 'border-amber-400 ring-2 ring-amber-100 shadow-md' : 'border-slate-200 hover:border-indigo-400 shadow-sm'} transition-all p-4 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-5 group cursor-pointer" onclick="openDetailModal(${item.id})">
@@ -890,18 +936,18 @@
               <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-2 border-t border-slate-100 text-xs sm:text-sm">
                 <div class="flex items-center space-x-1.5 whitespace-nowrap">
                   <span class="text-[11px] sm:text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md"><i class="fa-solid fa-user-tie text-indigo-500 mr-1"></i>설교자</span>
-                  <span class="${item.preacher ? 'text-slate-950 font-black' : 'text-slate-400 font-normal'}">${currentQuery ? highlightQuery(item.preacher, currentQuery) : (item.preacher || '-')}</span>
+                  <span class="${item.preacher ? 'text-slate-950 font-black' : 'text-slate-400 font-normal'}">${shouldHighlightPreacher ? highlightQuery(item.preacher, currentQuery) : (item.preacher || '-')}</span>
                 </div>
                 ${leader ? `
                   <div class="flex items-center space-x-1.5 whitespace-nowrap">
                     <span class="text-[11px] sm:text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md"><i class="fa-solid fa-microphone text-emerald-500 mr-1"></i>인도자</span>
-                    <span class="text-slate-950 font-black">${currentQuery ? highlightQuery(leader, currentQuery) : leader}</span>
+                    <span class="text-slate-950 font-black">${shouldHighlightTitle ? highlightQuery(leader, currentQuery) : leader}</span>
                   </div>
                 ` : ''}
                 ${prayer ? `
                   <div class="flex items-start space-x-1.5 w-full pt-1">
                     <span class="text-[11px] sm:text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md whitespace-nowrap flex-shrink-0 mt-0.5"><i class="fa-solid fa-hands-praying text-amber-500 mr-1"></i>기도자</span>
-                    <span class="text-slate-900 font-bold text-xs sm:text-sm break-keep leading-relaxed">${currentQuery ? highlightQuery(prayer, currentQuery) : prayer}</span>
+                    <span class="text-slate-900 font-bold text-xs sm:text-sm break-keep leading-relaxed">${shouldHighlightPrayer ? highlightQuery(prayer, currentQuery) : prayer}</span>
                   </div>
                 ` : ''}
               </div>

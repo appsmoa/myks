@@ -5,9 +5,49 @@ from typing import Dict, Any, List, Optional
 
 DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bulletin.db")
 
+def match_prayer_in_servants(servants_raw: Optional[str], query: Optional[str]) -> int:
+    """
+    예배 봉사자(servants) JSON 트리 중 오직 '기도'(대표기도) 항목에서만 검색어가 일치하는지 정밀 검사합니다.
+    (예배위원, 안내위원, 헌금위원, 차량, 주차, 찬양대, 다음주 등은 완벽하게 배제)
+    """
+    if not servants_raw or not query:
+        return 0
+    q = query.strip().lower()
+    if not q:
+        return 0
+    try:
+        s = json.loads(servants_raw) if isinstance(servants_raw, str) else servants_raw
+    except Exception:
+        return 0
+    if not isinstance(s, (dict, list)):
+        return 0
+        
+    def walk(obj, path):
+        if isinstance(obj, dict):
+            for k, v in obj.items():
+                if walk(v, path + [str(k)]):
+                    return True
+        elif isinstance(obj, list):
+            for item in obj:
+                if walk(item, path):
+                    return True
+        else:
+            val_str = str(obj).lower()
+            if q in val_str:
+                path_str = ' '.join(path)
+                # 다음주 제외 및 오직 '기도' 필드만 허용
+                if '다음주' not in path_str and '기도' in path_str:
+                    # 안내, 주차, 차량, 헌금, 봉독, 설교, 찬양대 등 다른 봉사직분 철저 배제
+                    if not any(x in path_str for x in ['안내', '주차', '차량', '헌금', '봉독', '설교', '찬양대', '반주', '음악', '직원', '교역자']):
+                        return True
+        return False
+
+    return 1 if walk(s, []) else 0
+
 def get_connection():
     conn = sqlite3.connect(DB_FILE)
     conn.row_factory = sqlite3.Row
+    conn.create_function("match_prayer", 2, match_prayer_in_servants)
     return conn
 
 def init_db():
@@ -141,8 +181,8 @@ def list_bulletins(query: Optional[str] = None, search_type: str = "all", year: 
     if query:
         search_pattern = f"%{query}%"
         if search_type == "prayer":
-            conditions.append("servants LIKE ?")
-            params.append(search_pattern)
+            conditions.append("match_prayer(servants, ?) = 1")
+            params.append(query)
         elif search_type == "preacher":
             conditions.append("preacher LIKE ?")
             params.append(search_pattern)
@@ -185,8 +225,8 @@ def count_bulletins(query: Optional[str] = None, search_type: str = "all", year:
     if query:
         search_pattern = f"%{query}%"
         if search_type == "prayer":
-            conditions.append("servants LIKE ?")
-            params.append(search_pattern)
+            conditions.append("match_prayer(servants, ?) = 1")
+            params.append(query)
         elif search_type == "preacher":
             conditions.append("preacher LIKE ?")
             params.append(search_pattern)
