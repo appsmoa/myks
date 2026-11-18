@@ -220,107 +220,108 @@
     </div>
   </footer>
 
-  <!-- Bulletin Detail Modal -->
-  <div id="detailModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-3 sm:p-6">
-    <div class="bg-white rounded-3xl max-w-6xl w-full max-h-[94vh] flex flex-col shadow-2xl overflow-hidden border border-slate-300">
+  <!-- Bulletin Detail Modal (모바일 여백 과다 해소: p-2 sm:p-6) -->
+  <div id="detailModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-2 sm:p-6">
+    <div class="bg-white rounded-2xl sm:rounded-3xl max-w-6xl w-full max-h-[96vh] flex flex-col shadow-2xl overflow-hidden border border-slate-300">
       
       <!-- Modal Header -->
-      <div class="px-6 sm:px-8 py-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+      <div class="px-4 sm:px-8 py-3.5 sm:py-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
         <div>
-          <div class="flex items-center space-x-2.5">
-            <span id="modalDateBadge" class="px-3.5 py-1 rounded-xl text-sm font-black bg-indigo-600 text-white shadow-sm"></span>
-            <span id="modalStatusBadge" class="px-3 py-1 rounded-xl text-xs sm:text-sm font-bold"></span>
+          <div class="flex items-center space-x-2">
+            <span id="modalDateBadge" class="px-3 py-1 rounded-xl text-xs sm:text-sm font-black bg-indigo-600 text-white shadow-xs"></span>
+            <span id="modalStatusBadge" class="px-2.5 py-0.5 rounded-xl text-xs font-bold"></span>
           </div>
-          <h3 id="modalTitle" class="text-xl sm:text-2xl font-black text-slate-950 mt-1.5"></h3>
+          <h3 id="modalTitle" class="text-lg sm:text-2xl font-black text-slate-950 mt-1 leading-snug"></h3>
         </div>
-        <div class="flex items-center space-x-3">
-          <a id="modalOriginalLink" href="#" target="_blank" class="text-sm font-bold text-slate-700 hover:text-indigo-600 px-3.5 py-2 rounded-xl border border-slate-300 hover:bg-white flex items-center space-x-1.5 transition">
+        <div class="flex items-center space-x-2 sm:space-x-3">
+          <a id="modalOriginalLink" href="#" target="_blank" class="text-xs sm:text-sm font-bold text-slate-700 hover:text-indigo-600 px-3 py-2 rounded-xl border border-slate-300 hover:bg-white flex items-center space-x-1.5 transition">
             <i class="fa-solid fa-arrow-up-right-from-square"></i>
-            <span>교회 원문글</span>
+            <span class="hidden sm:inline">교회 원문글</span>
+            <span class="sm:hidden">원문</span>
           </a>
-          <button onclick="closeDetailModal()" class="text-slate-400 hover:text-slate-700 p-2 text-2xl transition">
+          <button onclick="closeDetailModal()" class="text-slate-400 hover:text-slate-700 p-1.5 sm:p-2 text-2xl transition">
             <i class="fa-solid fa-xmark"></i>
           </button>
         </div>
       </div>
 
-      <!-- Modal Body -->
-      <div class="flex-1 overflow-y-auto p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <!-- Modal Body (모바일 가용 폭 대폭 확보: p-3 sm:p-6 lg:p-8) -->
+      <div class="flex-1 overflow-y-auto p-3 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-8">
         
         <!-- Left: Image Viewer (lg:col-span-6) -->
-        <div class="lg:col-span-6 flex flex-col space-y-3">
-          <div class="relative bg-slate-950 rounded-2xl overflow-hidden flex items-center justify-center min-h-[460px] max-h-[640px] border-2 border-slate-800 shadow-inner">
+        <div class="lg:col-span-6 flex flex-col space-y-2.5 sm:space-y-3">
+          <div class="relative bg-slate-950 rounded-2xl overflow-hidden flex items-center justify-center min-h-[300px] sm:min-h-[460px] max-h-[640px] border-2 border-slate-800 shadow-inner">
             <img id="modalMainImage" src="" alt="주보 이미지" class="max-h-[620px] w-auto object-contain transition-all duration-200">
-            <a id="modalImageNewTab" href="#" target="_blank" class="absolute top-4 right-4 bg-black/75 hover:bg-black text-white text-sm font-bold px-3 py-1.5 rounded-xl backdrop-blur-md transition shadow-md">
+            <a id="modalImageNewTab" href="#" target="_blank" class="absolute top-3 right-3 sm:top-4 sm:right-4 bg-black/75 hover:bg-black text-white text-xs sm:text-sm font-bold px-2.5 py-1.5 rounded-xl backdrop-blur-md transition shadow-md">
               <i class="fa-solid fa-expand mr-1.5"></i>원본 확대보기
             </a>
           </div>
           <!-- Thumbnail Selector -->
-          <div id="modalThumbnails" class="flex space-x-3 overflow-x-auto py-2"></div>
+          <div id="modalThumbnails" class="flex space-x-2 sm:space-x-3 overflow-x-auto py-1"></div>
         </div>
 
         <!-- Right: AI Extracted Details (lg:col-span-6) -->
-        <div class="lg:col-span-6 flex flex-col space-y-5">
+        <div class="lg:col-span-6 flex flex-col space-y-3.5 sm:space-y-5">
           
           <!-- Sermon Box -->
-          <div class="p-5 rounded-2xl bg-indigo-50/80 border-2 border-indigo-200 shadow-xs">
-            <h4 class="text-sm font-black text-indigo-950 uppercase tracking-wide mb-3 flex items-center">
-              <i class="fa-solid fa-microphone-lines mr-2 text-indigo-600 text-lg"></i>주일 설교 정보
+          <div class="p-3.5 sm:p-5 rounded-2xl bg-indigo-50/80 border-2 border-indigo-200 shadow-xs">
+            <h4 class="text-xs sm:text-sm font-black text-indigo-950 uppercase tracking-wide mb-2 flex items-center">
+              <i class="fa-solid fa-microphone-lines mr-1.5 sm:mr-2 text-indigo-600 text-base sm:text-lg"></i>주일 설교 정보
             </h4>
-            <div class="space-y-2.5">
+            <div class="space-y-2">
               <div>
-                <span class="text-xs font-bold text-slate-500 block">말씀 제목</span>
-                <span id="modalSermonTitle" class="font-black text-xl sm:text-2xl text-slate-950 leading-snug"></span>
+                <span class="text-[11px] sm:text-xs font-bold text-slate-500 block">말씀 제목</span>
+                <span id="modalSermonTitle" class="font-black text-lg sm:text-2xl text-slate-950 leading-snug"></span>
               </div>
-              <div class="grid grid-cols-2 gap-3 pt-2.5 border-t border-indigo-200">
+              <div class="grid grid-cols-2 gap-2 sm:gap-3 pt-2 border-t border-indigo-200">
                 <div>
-                  <span class="text-xs font-bold text-slate-500 block">본문 말씀</span>
-                  <span id="modalScripture" class="font-extrabold text-base text-indigo-900"></span>
+                  <span class="text-[11px] sm:text-xs font-bold text-slate-500 block">본문 말씀</span>
+                  <span id="modalScripture" class="font-extrabold text-sm sm:text-base text-indigo-900 break-keep"></span>
                 </div>
                 <div>
-                  <span class="text-xs font-bold text-slate-500 block">설교자</span>
-                  <span id="modalPreacher" class="font-extrabold text-base text-slate-900"></span>
+                  <span class="text-[11px] sm:text-xs font-bold text-slate-500 block">설교자</span>
+                  <span id="modalPreacher" class="font-extrabold text-sm sm:text-base text-slate-900"></span>
                 </div>
               </div>
             </div>
           </div>
 
           <!-- Finances Box (헌금 결산 및 재정 현황) -->
-          <div class="p-5 rounded-2xl bg-emerald-50/90 border-2 border-emerald-300 shadow-xs">
-            <div class="flex items-center justify-between mb-3">
-              <h4 class="text-sm sm:text-base font-black text-emerald-950 flex items-center">
-                <i class="fa-solid fa-coins mr-2 text-emerald-600 text-lg"></i>재정 현황 (항목별 헌금 금액)
+          <div class="p-3.5 sm:p-5 rounded-2xl bg-emerald-50/90 border-2 border-emerald-300 shadow-xs">
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="text-xs sm:text-base font-black text-emerald-950 flex items-center">
+                <i class="fa-solid fa-coins mr-1.5 sm:mr-2 text-emerald-600 text-base sm:text-lg"></i>재정 현황 (항목별 헌금 금액)
               </h4>
-              <span id="modalFinanceDate" class="text-xs sm:text-sm font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-lg"></span>
+              <span id="modalFinanceDate" class="text-[11px] sm:text-sm font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-lg whitespace-nowrap"></span>
             </div>
-            <div id="modalFinances" class="space-y-3"></div>
+            <div id="modalFinances" class="space-y-2.5"></div>
           </div>
 
           <!-- Offerings Box (헌금 명단) -->
-          <div class="p-5 rounded-2xl bg-amber-50/80 border-2 border-amber-300 shadow-xs">
-            <div class="flex items-center justify-between mb-3">
-              <h4 class="text-sm sm:text-base font-black text-amber-950 flex items-center">
-                <i class="fa-solid fa-hand-holding-heart mr-2 text-amber-600 text-lg"></i>향기로운 예물 (헌금 명단)
+          <div class="p-3.5 sm:p-5 rounded-2xl bg-amber-50/80 border-2 border-amber-300 shadow-xs">
+            <div class="flex items-center justify-between mb-2">
+              <h4 class="text-xs sm:text-base font-black text-amber-950 flex items-center">
+                <i class="fa-solid fa-hand-holding-heart mr-1.5 sm:mr-2 text-amber-600 text-base sm:text-lg"></i>향기로운 예물 (헌금 명단)
               </h4>
-              <span class="text-xs sm:text-sm font-bold text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-lg">항목별 성도 명단</span>
+              <span class="text-[11px] sm:text-sm font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-lg whitespace-nowrap">항목별 성도 명단</span>
             </div>
-            <div id="modalOfferings" class="space-y-3 max-h-64 overflow-y-auto pr-2"></div>
+            <div id="modalOfferings" class="space-y-2 max-h-64 overflow-y-auto pr-1"></div>
           </div>
 
           <!-- Servants Box -->
-          <div class="p-5 rounded-2xl bg-slate-50 border-2 border-slate-200">
-            <h4 class="text-sm font-black text-slate-800 uppercase tracking-wide mb-3 flex items-center">
-              <i class="fa-solid fa-users mr-2 text-slate-600 text-base"></i>예배별 대표기도 & 봉사자
+          <div class="p-3.5 sm:p-5 rounded-2xl bg-slate-50 border-2 border-slate-200">
+            <h4 class="text-xs sm:text-sm font-black text-slate-800 uppercase tracking-wide mb-2 flex items-center">
+              <i class="fa-solid fa-users mr-1.5 sm:mr-2 text-slate-600 text-sm sm:text-base"></i>예배별 대표기도 & 봉사자
             </h4>
-            <div id="modalServants" class="space-y-2.5"></div>
+            <div id="modalServants" class="space-y-2"></div>
           </div>
 
           <!-- Announcements Box -->
-          <div class="p-5 rounded-2xl bg-slate-50 border-2 border-slate-200 flex-1">
-            <h4 class="text-sm font-black text-slate-800 uppercase tracking-wide mb-3 flex items-center">
-              <i class="fa-solid fa-bullhorn mr-2 text-slate-600 text-base"></i>교회 소식 및 광고
+          <div class="p-3.5 sm:p-5 rounded-2xl bg-slate-50 border-2 border-slate-200 flex-1">
+            <h4 class="text-xs sm:text-sm font-black text-slate-800 uppercase tracking-wide mb-2 flex items-center">
+              <i class="fa-solid fa-bullhorn mr-1.5 sm:mr-2 text-slate-600 text-sm sm:text-base"></i>교회 소식 및 광고
             </h4>
-            <div id="modalAnnouncements" class="space-y-2.5 max-h-64 overflow-y-auto pr-2"></div>
+            <div id="modalAnnouncements" class="space-y-2 max-h-64 overflow-y-auto pr-1"></div>
           </div>
 
           <!-- Action Button / Notice -->
@@ -841,67 +842,67 @@
         const scriptureDisplay = currentQuery ? highlightQuery(item.scripture, currentQuery) : item.scripture;
 
         return `
-          <div class="bg-white rounded-2xl border-2 ${searchMatches.length > 0 ? 'border-amber-400 ring-2 ring-amber-100 shadow-md' : 'border-slate-200 hover:border-indigo-400 shadow-sm'} transition-all p-5 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-5 group cursor-pointer" onclick="openDetailModal(${item.id})">
+          <div class="bg-white rounded-2xl border-2 ${searchMatches.length > 0 ? 'border-amber-400 ring-2 ring-amber-100 shadow-md' : 'border-slate-200 hover:border-indigo-400 shadow-sm'} transition-all p-4 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-5 group cursor-pointer" onclick="openDetailModal(${item.id})">
             
             <!-- Left Info Area -->
-            <div class="flex-1 flex flex-col space-y-3">
+            <div class="flex-1 flex flex-col space-y-2.5 sm:space-y-3">
               <!-- Top Badges & Date -->
-              <div class="flex flex-wrap items-center gap-2">
-                <span class="px-3.5 py-1 rounded-xl text-sm font-black bg-indigo-600 text-white shadow-xs">
+              <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <span class="px-3 py-1 rounded-xl text-xs sm:text-sm font-black bg-indigo-600 text-white shadow-xs">
                   ${item.date || '날짜 미상'}
                 </span>
                 <span class="font-extrabold text-slate-400 text-xs sm:text-sm">#${item.post_num || item.id}</span>
                 ${isAnalyzed ? '' : `
                   <span class="text-amber-800 bg-amber-100 font-semibold px-2 py-0.5 rounded-lg text-xs">대기</span>
                 `}
-                <span class="text-slate-400 text-xs font-semibold ml-auto md:ml-2">등록: ${item.post_date ? item.post_date.split(' ')[0] : '-'}</span>
+                <span class="text-slate-400 text-[11px] sm:text-xs font-semibold ml-auto md:ml-2">등록: ${item.post_date ? item.post_date.split(' ')[0] : '-'}</span>
               </div>
 
               <!-- Sermon Title (말씀 제목) -->
               <div>
-                <h3 class="font-black text-slate-950 group-hover:text-indigo-600 transition text-xl sm:text-2xl leading-snug">
+                <h3 class="font-black text-slate-950 group-hover:text-indigo-600 transition text-lg sm:text-2xl leading-snug break-keep">
                   ${sermonTitleDisplay}
                 </h3>
               </div>
 
               <!-- Scripture (말씀 본문) -->
               ${item.scripture ? `
-                <div class="flex items-center text-sm sm:text-base font-extrabold text-indigo-900 bg-indigo-50/70 px-3 py-1.5 rounded-xl border border-indigo-100 w-fit">
-                  <i class="fa-solid fa-book-bible mr-2 text-indigo-600"></i>
+                <div class="flex items-center text-xs sm:text-base font-extrabold text-indigo-900 bg-indigo-50/70 px-2.5 sm:px-3 py-1.5 rounded-xl border border-indigo-100 w-fit break-keep">
+                  <i class="fa-solid fa-book-bible mr-1.5 sm:mr-2 text-indigo-600"></i>
                   <span>${scriptureDisplay}</span>
                 </div>
               ` : ''}
 
               <!-- Preacher, Leader, Prayer Row (설교자, 인도자, 기도자) -->
-              <div class="flex flex-wrap items-center gap-x-6 gap-y-2 pt-2.5 border-t border-slate-100 text-sm sm:text-base">
+              <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-2 border-t border-slate-100 text-xs sm:text-sm">
                 <div class="flex items-center space-x-1.5 whitespace-nowrap">
-                  <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md"><i class="fa-solid fa-user-tie text-indigo-500 mr-1"></i>설교자</span>
+                  <span class="text-[11px] sm:text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md"><i class="fa-solid fa-user-tie text-indigo-500 mr-1"></i>설교자</span>
                   <span class="${item.preacher ? 'text-slate-950 font-black' : 'text-slate-400 font-normal'}">${currentQuery ? highlightQuery(item.preacher, currentQuery) : (item.preacher || '-')}</span>
                 </div>
                 ${leader ? `
                   <div class="flex items-center space-x-1.5 whitespace-nowrap">
-                    <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md"><i class="fa-solid fa-microphone text-emerald-500 mr-1"></i>인도자</span>
+                    <span class="text-[11px] sm:text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md"><i class="fa-solid fa-microphone text-emerald-500 mr-1"></i>인도자</span>
                     <span class="text-slate-950 font-black">${currentQuery ? highlightQuery(leader, currentQuery) : leader}</span>
                   </div>
                 ` : ''}
                 ${prayer ? `
-                  <div class="flex items-center space-x-1.5 min-w-0">
-                    <span class="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md whitespace-nowrap flex-shrink-0"><i class="fa-solid fa-hands-praying text-amber-500 mr-1"></i>기도자</span>
-                    <span class="text-slate-900 font-bold truncate" title="${prayer}">${currentQuery ? highlightQuery(prayer, currentQuery) : prayer}</span>
+                  <div class="flex items-start space-x-1.5 w-full pt-1">
+                    <span class="text-[11px] sm:text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md whitespace-nowrap flex-shrink-0 mt-0.5"><i class="fa-solid fa-hands-praying text-amber-500 mr-1"></i>기도자</span>
+                    <span class="text-slate-900 font-bold text-xs sm:text-sm break-keep leading-relaxed">${currentQuery ? highlightQuery(prayer, currentQuery) : prayer}</span>
                   </div>
                 ` : ''}
               </div>
 
               <!-- Search Match Location Badges (검색어가 있을 때 매칭 위치 및 발췌문 표시) -->
               ${searchMatches.length > 0 ? `
-                <div class="mt-2.5 p-3 rounded-xl bg-amber-50/70 border border-amber-200/80 flex flex-col space-y-1.5 text-xs sm:text-sm">
+                <div class="mt-2 p-2.5 rounded-xl bg-amber-50/70 border border-amber-200/80 flex flex-col space-y-1 text-xs">
                   <div class="flex items-center space-x-1.5 font-bold text-amber-900">
                     <i class="fa-solid fa-magnifying-glass text-amber-600"></i>
                     <span>검색어 '${currentQuery}' 일치 위치:</span>
                   </div>
-                  <div class="flex flex-wrap gap-2 pt-0.5">
+                  <div class="flex flex-wrap gap-1.5 pt-0.5">
                     ${searchMatches.map(m => `
-                      <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg border ${m.color} shadow-2xs">
+                      <div class="flex items-center space-x-1.5 px-2 py-0.5 rounded-lg border ${m.color} shadow-2xs">
                         <span class="font-black underline">${m.area}</span>
                         <span class="font-medium text-slate-800">${highlightQuery(m.text, currentQuery)}</span>
                       </div>
@@ -913,18 +914,18 @@
             </div>
 
             <!-- Right Thumbnail & Action Button -->
-            <div class="flex md:flex-col items-center md:items-end justify-between md:justify-center gap-3 border-t md:border-t-0 pt-3 md:pt-0 border-slate-100 flex-shrink-0">
+            <div class="flex md:flex-col items-center md:items-end justify-between md:justify-center gap-3 border-t md:border-t-0 pt-2.5 md:pt-0 border-slate-100 flex-shrink-0">
               ${firstImg ? `
-                <div class="relative w-20 h-24 sm:w-24 sm:h-28 rounded-xl overflow-hidden bg-slate-900 border-2 border-slate-200 group-hover:border-indigo-500 shadow-sm flex-shrink-0">
+                <div class="relative w-16 h-20 sm:w-24 sm:h-28 rounded-xl overflow-hidden bg-slate-900 border-2 border-slate-200 group-hover:border-indigo-500 shadow-xs flex-shrink-0">
                   <img src="${firstImg}" alt="주보 표지" class="w-full h-full object-cover object-top" loading="lazy">
-                  <span class="absolute bottom-1 right-1 bg-black/75 text-white text-[10px] font-black px-1.5 py-0.5 rounded">${item.image_urls.length}면</span>
+                  <span class="absolute bottom-0.5 right-0.5 bg-black/75 text-white text-[9px] sm:text-[10px] font-black px-1.5 py-0.5 rounded">${item.image_urls.length}면</span>
                 </div>
               ` : `
-                <div class="w-20 h-24 rounded-xl bg-slate-100 flex items-center justify-center text-slate-300 border border-slate-200">
-                  <i class="fa-regular fa-image text-2xl"></i>
+                <div class="w-16 h-20 sm:w-24 sm:h-28 rounded-xl bg-slate-100 flex items-center justify-center text-slate-300 border border-slate-200">
+                  <i class="fa-regular fa-image text-xl sm:text-2xl"></i>
                 </div>
               `}
-              <button class="px-4 py-2 bg-slate-100 group-hover:bg-indigo-600 text-slate-700 group-hover:text-white rounded-xl text-xs sm:text-sm font-black transition flex items-center space-x-1.5">
+              <button class="px-3.5 py-2 sm:px-4 sm:py-2 bg-slate-100 group-hover:bg-indigo-600 text-slate-700 group-hover:text-white rounded-xl text-xs sm:text-sm font-black transition flex items-center space-x-1.5">
                 <span>상세보기</span>
                 <i class="fa-solid fa-chevron-right text-xs"></i>
               </button>
@@ -1043,18 +1044,18 @@
           if (inc && typeof inc === 'object') {
             const totalInc = inc.총수입 ? Number(inc.총수입).toLocaleString() + '원' : (inc.total ? Number(inc.total * 1000).toLocaleString() + '원' : '');
             finHtml += `
-              <div class="bg-white p-4 rounded-xl border-2 border-emerald-300 shadow-sm">
-                <div class="flex justify-between items-center mb-3 pb-2 border-b-2 border-emerald-100">
-                  <span class="font-black text-emerald-950 text-sm sm:text-base">[수입 헌금 결산]</span>
-                  <span class="text-emerald-700 font-black text-lg sm:text-xl">${totalInc}</span>
+              <div class="bg-white p-3.5 sm:p-4 rounded-xl border-2 border-emerald-300 shadow-xs">
+                <div class="flex justify-between items-center mb-2.5 pb-2 border-b-2 border-emerald-100">
+                  <span class="font-black text-emerald-950 text-xs sm:text-base whitespace-nowrap">[수입 헌금 결산]</span>
+                  <span class="text-emerald-700 font-black text-base sm:text-xl whitespace-nowrap">${totalInc}</span>
                 </div>
-                <div class="grid grid-cols-2 gap-2 text-sm sm:text-base">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2">
                   ${Object.entries(inc).filter(([k]) => !['총수입', 'total'].includes(k)).map(([k, v]) => {
                     const numVal = typeof v === 'number' ? (v < 100000 ? v * 1000 : v) : v;
                     return `
-                      <div class="bg-emerald-50/70 p-2.5 rounded-lg flex justify-between items-center border border-emerald-200/60">
-                        <span class="font-bold text-slate-700">${k}</span>
-                        <span class="font-black text-emerald-800">${typeof numVal === 'number' ? numVal.toLocaleString() + '원' : numVal}</span>
+                      <div class="bg-emerald-50/70 px-3 py-2 rounded-xl flex justify-between items-center border border-emerald-200/60">
+                        <span class="font-bold text-slate-800 text-xs sm:text-sm whitespace-nowrap">${k}</span>
+                        <span class="font-black text-emerald-800 text-xs sm:text-sm whitespace-nowrap tracking-tight">${typeof numVal === 'number' ? numVal.toLocaleString() + '원' : numVal}</span>
                       </div>
                     `;
                   }).join('')}
@@ -1066,18 +1067,18 @@
           if (exp && typeof exp === 'object') {
             const totalExp = exp.총지출 ? Number(exp.총지출).toLocaleString() + '원' : (exp.total ? Number(exp.total * 1000).toLocaleString() + '원' : '');
             finHtml += `
-              <div class="bg-white p-4 rounded-xl border-2 border-slate-300 shadow-sm mt-3">
-                <div class="flex justify-between items-center mb-3 pb-2 border-b-2 border-slate-200">
-                  <span class="font-black text-slate-900 text-sm sm:text-base">[지출 결산]</span>
-                  <span class="text-slate-800 font-black text-lg sm:text-xl">${totalExp}</span>
+              <div class="bg-white p-3.5 sm:p-4 rounded-xl border-2 border-slate-300 shadow-xs mt-3">
+                <div class="flex justify-between items-center mb-2.5 pb-2 border-b-2 border-slate-200">
+                  <span class="font-black text-slate-900 text-xs sm:text-base whitespace-nowrap">[지출 결산]</span>
+                  <span class="text-slate-800 font-black text-base sm:text-xl whitespace-nowrap">${totalExp}</span>
                 </div>
-                <div class="grid grid-cols-2 gap-2 text-sm sm:text-base">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2">
                   ${Object.entries(exp).filter(([k]) => !['총지출', 'total'].includes(k)).map(([k, v]) => {
                     const numVal = typeof v === 'number' ? (v < 100000 ? v * 1000 : v) : v;
                     return `
-                      <div class="bg-slate-100 p-2.5 rounded-lg flex justify-between items-center border border-slate-200">
-                        <span class="font-bold text-slate-700">${k}</span>
-                        <span class="font-black text-slate-900">${typeof numVal === 'number' ? numVal.toLocaleString() + '원' : numVal}</span>
+                      <div class="bg-slate-100 px-3 py-2 rounded-xl flex justify-between items-center border border-slate-200">
+                        <span class="font-bold text-slate-800 text-xs sm:text-sm whitespace-nowrap">${k}</span>
+                        <span class="font-black text-slate-900 text-xs sm:text-sm whitespace-nowrap tracking-tight">${typeof numVal === 'number' ? numVal.toLocaleString() + '원' : numVal}</span>
                       </div>
                     `;
                   }).join('')}
