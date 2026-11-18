@@ -1256,7 +1256,7 @@
           const exp = financesData.지출 || financesData.expense;
 
           if (inc && typeof inc === 'object') {
-            const totalInc = inc.총수입 ? Number(inc.총수입).toLocaleString() + '원' : (inc.total ? Number(inc.total * 1000).toLocaleString() + '원' : '');
+            const totalInc = inc.총수입 ? Number(inc.총수입).toLocaleString() + '원' : (inc.total ? Number(inc.total).toLocaleString() + '원' : '');
             finHtml += `
               <div class="bg-white p-3.5 sm:p-4 rounded-xl border-2 border-emerald-300 shadow-xs">
                 <div class="flex justify-between items-center mb-2.5 pb-2 border-b-2 border-emerald-100">
@@ -1265,7 +1265,7 @@
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2">
                   ${Object.entries(inc).filter(([k]) => !['총수입', 'total'].includes(k)).map(([k, v]) => {
-                    const numVal = typeof v === 'number' ? (v < 100000 ? v * 1000 : v) : v;
+                    const numVal = typeof v === 'number' ? v : (typeof v === 'string' && !isNaN(v) ? Number(v) : v);
                     return `
                       <div class="bg-emerald-50/70 px-3 py-2 rounded-xl flex justify-between items-center border border-emerald-200/60">
                         <span class="font-bold text-slate-800 text-xs sm:text-sm whitespace-nowrap">${k}</span>
@@ -1279,7 +1279,7 @@
           }
 
           if (exp && typeof exp === 'object') {
-            const totalExp = exp.총지출 ? Number(exp.총지출).toLocaleString() + '원' : (exp.total ? Number(exp.total * 1000).toLocaleString() + '원' : '');
+            const totalExp = exp.총지출 ? Number(exp.총지출).toLocaleString() + '원' : (exp.total ? Number(exp.total).toLocaleString() + '원' : '');
             finHtml += `
               <div class="bg-white p-3.5 sm:p-4 rounded-xl border-2 border-slate-300 shadow-xs mt-3">
                 <div class="flex justify-between items-center mb-2.5 pb-2 border-b-2 border-slate-200">
@@ -1288,7 +1288,7 @@
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2">
                   ${Object.entries(exp).filter(([k]) => !['총지출', 'total'].includes(k)).map(([k, v]) => {
-                    const numVal = typeof v === 'number' ? (v < 100000 ? v * 1000 : v) : v;
+                    const numVal = typeof v === 'number' ? v : (typeof v === 'string' && !isNaN(v) ? Number(v) : v);
                     return `
                       <div class="bg-slate-100 px-3 py-2 rounded-xl flex justify-between items-center border border-slate-200">
                         <span class="font-bold text-slate-800 text-xs sm:text-sm whitespace-nowrap">${k}</span>
