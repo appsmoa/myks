@@ -38,11 +38,15 @@
   <section class="bg-white border-b border-slate-300 py-6 shadow-xs">
     <div class="max-w-5xl mx-auto px-4">
       
-      <!-- Search Category Tabs ([전체] | [기도자] | [설교자] | [본문성경] | [교회소식] | [헌금명단]) -->
+      <!-- Search Category Tabs ([전체] | [말씀제목] | [기도자] | [설교자] | [본문성경] | [교회소식] | [헌금명단]) -->
       <div class="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-3">
         <button onclick="setSearchType('all')" id="tab_all" class="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold bg-indigo-600 text-white shadow-xs transition flex items-center space-x-1.5">
           <i class="fa-solid fa-list-ul"></i>
           <span>전체</span>
+        </button>
+        <button onclick="setSearchType('sermon')" id="tab_sermon" class="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition flex items-center space-x-1.5">
+          <i class="fa-solid fa-book-open"></i>
+          <span>말씀제목</span>
         </button>
         <button onclick="setSearchType('prayer')" id="tab_prayer" class="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition flex items-center space-x-1.5">
           <i class="fa-solid fa-hands-praying"></i>
@@ -433,9 +437,10 @@
       currentSearchType = type;
       currentPage = 1;
       
-      const tabs = ['all', 'prayer', 'preacher', 'scripture', 'announcement', 'offering'];
+      const tabs = ['all', 'sermon', 'prayer', 'preacher', 'scripture', 'announcement', 'offering'];
       const placeholders = {
         'all': '설교 제목, 본문, 설교자, 인도자, 기도자, 성도 이름 검색...',
+        'sermon': '설교 말씀 제목 검색...',
         'prayer': '기도자 성함 검색...',
         'preacher': '설교자 성함 검색...',
         'scripture': '본문 성경 구절 검색...',
@@ -600,6 +605,7 @@
         if (currentQuery || currentYear !== 'all') {
           const typeNames = { 
             'all': '', 
+            'sermon': ' [말씀제목]',
             'prayer': ' [기도자]', 
             'preacher': ' [설교자]', 
             'scripture': ' [본문성경]', 
@@ -637,6 +643,14 @@
       if (!query) return [];
       const q = query.toLowerCase().trim();
       const matches = [];
+
+      // 0. 말씀제목 탭 선택 시 -> 오직 설교 말씀 제목만 엄격 검사
+      if (searchType === 'sermon') {
+        if (item.sermon_title && item.sermon_title.toLowerCase().includes(q)) {
+          matches.push({ area: '말씀 제목', text: item.sermon_title, color: 'bg-indigo-100 text-indigo-900 border-indigo-300 font-extrabold' });
+        }
+        return matches;
+      }
 
       // 1. 기도자 탭 선택 시 -> 오직 실제 대표기도자만 엄격 검사
       if (searchType === 'prayer') {
@@ -892,7 +906,7 @@
         const { leader, prayer } = extractLeaderAndPrayer(item.servants);
         const searchMatches = currentQuery ? findSearchMatches(item, currentQuery, currentSearchType) : [];
 
-        const shouldHighlightTitle = currentQuery && currentSearchType === 'all';
+        const shouldHighlightTitle = currentQuery && ['all', 'sermon'].includes(currentSearchType);
         const shouldHighlightScripture = currentQuery && ['all', 'scripture'].includes(currentSearchType);
         const shouldHighlightPreacher = currentQuery && ['all', 'preacher'].includes(currentSearchType);
         const shouldHighlightPrayer = currentQuery && ['all', 'prayer'].includes(currentSearchType);

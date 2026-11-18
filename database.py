@@ -180,7 +180,10 @@ def list_bulletins(query: Optional[str] = None, search_type: str = "all", year: 
         
     if query:
         search_pattern = f"%{query}%"
-        if search_type == "prayer":
+        if search_type == "sermon":
+            conditions.append("sermon_title LIKE ?")
+            params.append(search_pattern)
+        elif search_type == "prayer":
             conditions.append("match_prayer(servants, ?) = 1")
             params.append(query)
         elif search_type == "preacher":
@@ -224,7 +227,10 @@ def count_bulletins(query: Optional[str] = None, search_type: str = "all", year:
         
     if query:
         search_pattern = f"%{query}%"
-        if search_type == "prayer":
+        if search_type == "sermon":
+            conditions.append("sermon_title LIKE ?")
+            params.append(search_pattern)
+        elif search_type == "prayer":
             conditions.append("match_prayer(servants, ?) = 1")
             params.append(query)
         elif search_type == "preacher":
