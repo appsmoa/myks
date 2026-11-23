@@ -1076,13 +1076,38 @@
       }
 
       const prayersList = [];
-      if (prayers['9시']) prayersList.push(`9시: ${prayers['9시']}`);
-      if (prayers['11시']) prayersList.push(`11시: ${prayers['11시']}`);
-      if (prayers['수요']) prayersList.push(`수요: ${prayers['수요']}`);
+      if (prayers['9시']) prayersList.push({ time: '9시', name: prayers['9시'] });
+      if (prayers['11시']) prayersList.push({ time: '11시', name: prayers['11시'] });
+      if (prayers['수요']) prayersList.push({ time: '수요', name: prayers['수요'] });
+
+      // 정형화된 키에 매칭되지 않았으나 기도 정보가 있는 경우의 fallback
+      if (prayersList.length === 0) {
+        for (const item of flatItems) {
+          const fullPath = item.path.join(' ');
+          const isPrayer = item.path.some(p => p.includes('기도')) || fullPath.includes('기도');
+          if (isPrayer && !item.path.some(p => p.includes('인도'))) {
+            const valClean = cleanPersonName(item.val);
+            if (valClean) {
+              const parts = valClean.split(/[,|]/).map(p => p.trim()).filter(Boolean);
+              if (parts.length > 0) {
+                parts.forEach(p => {
+                  const m = p.match(/^([0-9가-힣]+시?|[0-9]+:[0-9]+|수요(?:일)?)[\s:]+(.*)$/);
+                  if (m) prayersList.push({ time: m[1], name: m[2] });
+                  else prayersList.push({ time: '', name: p });
+                });
+              } else {
+                prayersList.push({ time: '', name: valClean });
+              }
+              break;
+            }
+          }
+        }
+      }
 
       return {
         leader: leader.trim(),
-        prayer: prayersList.join(' | ')
+        prayer: prayersList.map(p => p.time ? `${p.time}: ${p.name}` : p.name).join(' | '),
+        prayersList: prayersList
       };
     }
 
@@ -1238,7 +1263,7 @@
       container.innerHTML = items.map(item => {
         const isAnalyzed = item.status === 'analyzed';
         const firstImg = item.image_urls && item.image_urls.length > 0 ? item.image_urls[0] : '';
-        const { leader, prayer } = extractLeaderAndPrayer(item.servants);
+        const { leader, prayer, prayersList } = extractLeaderAndPrayer(item.servants);
         const searchMatches = currentQuery ? findSearchMatches(item, currentQuery, currentSearchType) : [];
 
         const shouldHighlightTitle = currentQuery && ['all', 'sermon'].includes(currentSearchType);
@@ -1283,29 +1308,50 @@
                 </div>
               ` : ''}
 
-              <!-- Preacher, Leader, Prayer Row (설교자, 인도자, 기도자 - 폰트 확대 및 시원한 줄바꿈) -->
-              <div class="pt-2 border-t border-slate-100 flex flex-col space-y-2">
+              <!-- Preacher, Leader, Prayer Row (설교자, 인도자, 기도자 - 줄간격 및 크기 일치, 시간대별 줄 분리) -->
+              <div class="pt-2.5 border-t border-slate-100 flex flex-col space-y-2.5">
                 <!-- 설교자 & 인도자 행 -->
-                <div class="flex flex-wrap items-center gap-x-5 gap-y-1.5">
-                  <div class="flex items-center space-x-2 whitespace-nowrap">
-                    <span class="text-xs sm:text-sm font-black text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg"><i class="fa-solid fa-user-tie text-indigo-500 mr-1.5"></i>설교자</span>
+                <div class="flex flex-wrap items-center gap-x-5 gap-y-2">
+                  <div class="flex items-center space-x-2.5 whitespace-nowrap">
+                    <span class="text-xs sm:text-sm font-black text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg flex items-center shadow-2xs"><i class="fa-solid fa-user-tie text-indigo-500 mr-1.5"></i>설교자</span>
                     <span class="${item.preacher ? 'text-slate-950 font-black text-base sm:text-lg' : 'text-slate-400 font-normal'}">${shouldHighlightPreacher ? highlightQuery(item.preacher, currentQuery) : (item.preacher || '-')}</span>
                   </div>
                   ${leader ? `
-                    <div class="flex items-center space-x-2 whitespace-nowrap">
-                      <span class="text-xs sm:text-sm font-black text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg"><i class="fa-solid fa-microphone text-emerald-500 mr-1.5"></i>인도자</span>
+                    <div class="flex items-center space-x-2.5 whitespace-nowrap">
+                      <span class="text-xs sm:text-sm font-black text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg flex items-center shadow-2xs"><i class="fa-solid fa-microphone text-emerald-500 mr-1.5"></i>인도자</span>
                       <span class="text-slate-950 font-black text-base sm:text-lg">${shouldHighlightTitle ? highlightQuery(leader, currentQuery) : leader}</span>
                     </div>
                   ` : ''}
                 </div>
 
-                <!-- 기도자 행 -->
-                ${prayer ? `
-                  <div class="flex items-start space-x-2 pt-0.5 w-full">
-                    <span class="text-xs sm:text-sm font-black text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg whitespace-nowrap flex-shrink-0 mt-0.5"><i class="fa-solid fa-hands-praying text-amber-500 mr-1.5"></i>기도자</span>
-                    <span class="text-slate-900 font-extrabold text-sm sm:text-base break-keep leading-relaxed">${shouldHighlightPrayer ? highlightQuery(prayer, currentQuery) : prayer}</span>
+                <!-- 기도자 행 (설교자와 동일한 폰트 크기, 9시 / 11시 / 수요 각 줄 분리) -->
+                ${prayersList && prayersList.length > 0 ? `
+                  <div class="flex items-start space-x-2.5 pt-0.5 w-full">
+                    <span class="text-xs sm:text-sm font-black text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg whitespace-nowrap flex-shrink-0 mt-0.5 flex items-center shadow-2xs"><i class="fa-solid fa-hands-praying text-amber-500 mr-1.5"></i>기도자</span>
+                    <div class="flex flex-col space-y-1.5 flex-1 min-w-0">
+                      ${prayersList.map(p => {
+                        const timeSpan = p.time ? `<span class="text-indigo-900 font-extrabold text-base sm:text-lg mr-1.5">${p.time}:</span>` : '';
+                        const nameSpan = `<span class="text-slate-950 font-black text-base sm:text-lg">${shouldHighlightPrayer ? highlightQuery(p.name, currentQuery) : p.name}</span>`;
+                        return `
+                          <div class="leading-snug break-keep flex flex-wrap items-center">
+                            ${timeSpan}${nameSpan}
+                          </div>
+                        `;
+                      }).join('')}
+                    </div>
                   </div>
-                ` : ''}
+                ` : (prayer ? `
+                  <div class="flex items-start space-x-2.5 pt-0.5 w-full">
+                    <span class="text-xs sm:text-sm font-black text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg whitespace-nowrap flex-shrink-0 mt-0.5 flex items-center shadow-2xs"><i class="fa-solid fa-hands-praying text-amber-500 mr-1.5"></i>기도자</span>
+                    <div class="flex flex-col space-y-1.5 flex-1 min-w-0">
+                      ${prayer.split('|').map(s => s.trim()).filter(Boolean).map(line => `
+                        <div class="text-slate-950 font-black text-base sm:text-lg leading-snug break-keep">
+                          ${shouldHighlightPrayer ? highlightQuery(line, currentQuery) : line}
+                        </div>
+                      `).join('')}
+                    </div>
+                  </div>
+                ` : '')}
               </div>
 
               <!-- Finance Summary Row (기도자 아래 수입, 지출, 차이 항목 - [수입/결산 보기] 클릭 시 노출) -->
