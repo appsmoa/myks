@@ -198,7 +198,9 @@ def extract_bulletin_info_with_gemini(image_urls, fallback_date=""):
     # 503(일시적 과부하) 발생 시 짧게 대기 후 재시도하도록 개선
     models_to_try = [
         "gemini-3.5-flash-lite", 
-        "gemini-3.5-flash"
+        "gemini-3.5-flash",
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-lite"
     ]
 
     for key_idx, current_key in enumerate(keys):
