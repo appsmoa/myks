@@ -115,7 +115,7 @@
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
     
     <!-- List Meta Info -->
-    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div class="mb-4 flex items-center justify-between">
       <div class="flex items-center space-x-3">
         <div class="text-base sm:text-lg font-black text-slate-900">
           주보 목록 (<span id="totalCount" class="text-indigo-600 font-black text-xl">0</span>건)
@@ -125,24 +125,14 @@
           <button onclick="resetSearch()" class="ml-1.5 hover:text-indigo-700"><i class="fa-solid fa-xmark"></i></button>
         </span>
       </div>
-
-      <!-- 상단 수입/결산 보기 토글 버튼 -->
-      <button 
-        onclick="toggleAllFinances()" 
-        class="px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 transition flex items-center space-x-1.5 shadow-2xs">
-        <i class="fa-solid fa-coins text-emerald-600"></i>
-        <span id="btnToggleFinanceTopText">수입/결산 보기</span>
-        <i id="btnToggleFinanceTopIcon" class="fa-solid fa-chevron-down text-[10px] text-emerald-600"></i>
-      </button>
     </div>
 
-    <!-- Top Finance Total Summary Bar (기본 hidden, [수입/결산 보기] 클릭 시 노출) -->
+    <!-- Top Finance Total Summary Bar (기본 hidden, 하단 [수입/결산 보기] 클릭 시 노출) -->
     <div id="topFinanceSummaryBar" class="hidden mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-50/90 via-teal-50/70 to-slate-50 border-2 border-emerald-300 shadow-sm transition-all">
       <div class="flex flex-wrap items-center justify-between gap-2 mb-3 pb-2.5 border-b border-emerald-200">
         <div class="flex items-center space-x-2">
           <span class="p-1.5 rounded-lg bg-emerald-600 text-white text-xs"><i class="fa-solid fa-scale-balanced"></i></span>
-          <span class="font-black text-slate-900 text-sm sm:text-base">현재 목록 재정 총결산 합계</span>
-          <span class="text-xs text-slate-500 font-medium">(표시된 주보 기준)</span>
+          <span id="topFinanceTitle" class="font-black text-slate-900 text-sm sm:text-base">재정 총결산 누적 합계</span>
         </div>
         <button onclick="toggleAllFinances()" class="text-xs font-bold text-slate-500 hover:text-slate-800 underline">
           접기
@@ -674,12 +664,13 @@
         }
 
         window._lastLoadedItems = data.items || [];
+        window._lastFinanceSummary = data.finance_summary || null;
 
         if (!data.items || data.items.length === 0) {
           list.innerHTML = '';
           empty.classList.remove('hidden');
           renderPagination(0, 1);
-          if (isFinanceVisible) updateTopFinanceSummary([]);
+          if (isFinanceVisible) updateTopFinanceSummary(data.finance_summary);
           return;
         }
 
@@ -687,7 +678,7 @@
         renderList(data.items);
         renderPagination(data.total_pages, data.page);
         if (isFinanceVisible) {
-          updateTopFinanceSummary(data.items);
+          updateTopFinanceSummary(data.finance_summary);
         }
       } catch (err) {
         list.innerHTML = `<div class="text-center text-rose-600 font-bold py-12">데이터를 불러오는 중 오류가 발생했습니다: ${err.message}</div>`;
@@ -1175,7 +1166,7 @@
       `;
     }
 
-    // Helper: 수입/결산 전체 보기 토글 함수 (상단 및 하단 버튼 연동)
+    // Helper: 수입/결산 전체 보기 토글 함수 (하단 버튼 연동)
     function toggleAllFinances() {
       isFinanceVisible = !isFinanceVisible;
       updateFinanceVisibility();
@@ -1183,65 +1174,38 @@
 
     function updateFinanceVisibility() {
       const topBar = document.getElementById('topFinanceSummaryBar');
-      const topBtnText = document.getElementById('btnToggleFinanceTopText');
-      const topBtnIcon = document.getElementById('btnToggleFinanceTopIcon');
       const btmBtnText = document.getElementById('btnToggleFinanceBottomText');
       const btmBtnIcon = document.getElementById('btnToggleFinanceBottomIcon');
 
       if (isFinanceVisible) {
         if (topBar) topBar.classList.remove('hidden');
-        if (topBtnText) topBtnText.innerText = '수입/결산 접기';
-        if (topBtnIcon) topBtnIcon.className = 'fa-solid fa-chevron-up text-[10px] text-emerald-600';
         if (btmBtnText) btmBtnText.innerText = '수입/결산 접기';
         if (btmBtnIcon) btmBtnIcon.className = 'fa-solid fa-chevron-up text-xs text-emerald-600';
         document.querySelectorAll('.finance-card-row').forEach(el => el.classList.remove('hidden'));
-        updateTopFinanceSummary(window._lastLoadedItems || []);
+        updateTopFinanceSummary(window._lastFinanceSummary);
       } else {
         if (topBar) topBar.classList.add('hidden');
-        if (topBtnText) topBtnText.innerText = '수입/결산 보기';
-        if (topBtnIcon) topBtnIcon.className = 'fa-solid fa-chevron-down text-[10px] text-emerald-600';
         if (btmBtnText) btmBtnText.innerText = '수입/결산 보기';
         if (btmBtnIcon) btmBtnIcon.className = 'fa-solid fa-chevron-down text-xs text-emerald-600';
         document.querySelectorAll('.finance-card-row').forEach(el => el.classList.add('hidden'));
       }
     }
 
-    // Helper: 현재 로드된 주보 목록의 전체 재정 합계 계산 및 상단 배너 표시
-    function updateTopFinanceSummary(items) {
-      let grandInc = 0;
-      let grandExp = 0;
+    // Helper: 선택된 연도(또는 전체)의 모든 주보 누적 재정 합계 상단 표시
+    function updateTopFinanceSummary(summary) {
+      if (!summary) return;
 
-      for (const item of items) {
-        let f = item.finances;
-        if (typeof f === 'string') {
-          try { f = JSON.parse(f); } catch(e) { continue; }
-        }
-        if (!f || typeof f !== 'object') continue;
+      const grandInc = summary.total_income || 0;
+      const grandExp = summary.total_expense || 0;
+      const grandDiff = summary.total_diff !== undefined ? summary.total_diff : (grandInc - grandExp);
+      const count = summary.bulletin_count || 0;
 
-        const inc = f.수입 || f.income || {};
-        const exp = f.지출 || f.expense || {};
-
-        let incVal = 0;
-        if (typeof inc === 'object' && inc !== null) {
-          incVal = inc.총수입 || inc.total || 0;
-          if (!incVal) {
-            incVal = Object.entries(inc).filter(([k]) => !k.includes('총') && !k.includes('합계')).reduce((sum, [, v]) => sum + (typeof v === 'number' ? v : 0), 0);
-          }
-        }
-
-        let expVal = 0;
-        if (typeof exp === 'object' && exp !== null) {
-          expVal = exp.총지출 || exp.total || 0;
-          if (!expVal) {
-            expVal = Object.entries(exp).filter(([k]) => !k.includes('총') && !k.includes('합계')).reduce((sum, [, v]) => sum + (typeof v === 'number' ? v : 0), 0);
-          }
-        }
-
-        grandInc += (Number(incVal) || 0);
-        grandExp += (Number(expVal) || 0);
+      const titleElem = document.getElementById('topFinanceTitle');
+      if (titleElem) {
+        const yrText = currentYear === 'all' ? '전체 주보' : `${currentYear}년`;
+        titleElem.innerText = `${yrText} 재정 총결산 합계 (총 ${count}건 누적)`;
       }
 
-      const grandDiff = grandInc - grandExp;
       const isPos = grandDiff > 0;
       const isZero = grandDiff === 0;
 

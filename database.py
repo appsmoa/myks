@@ -439,6 +439,95 @@ def get_available_years() -> List[str]:
     years = sorted(list(set([d.split('-')[0] for d in dates if len(d) >= 4 and d[:4].isdigit()])), reverse=True)
     return years
 
+def get_finance_summary(query: Optional[str] = None, search_type: str = "all", year: Optional[str] = None) -> Dict[str, Any]:
+    """
+    선택된 연도(또는 전체) 및 검색 조건에 해당하는 모든 주보의 누적 재정 합계를 집계합니다.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    conditions = ["finances IS NOT NULL", "finances != ''"]
+    params = []
+    
+    if year and year != "all":
+        conditions.append("date LIKE ?")
+        params.append(f"{year}%")
+        
+    if query:
+        search_pattern = f"%{query}%"
+        if search_type == "sermon":
+            conditions.append("sermon_title LIKE ?")
+            params.append(search_pattern)
+        elif search_type == "prayer":
+            conditions.append("match_prayer(servants, ?) = 1")
+            params.append(query)
+        elif search_type == "preacher":
+            conditions.append("preacher LIKE ?")
+            params.append(search_pattern)
+        elif search_type == "scripture":
+            conditions.append("match_scripture(scripture, ?) = 1")
+            params.append(query)
+        elif search_type == "announcement":
+            conditions.append("announcements LIKE ?")
+            params.append(search_pattern)
+        elif search_type == "offering":
+            conditions.append("offerings LIKE ?")
+            params.append(search_pattern)
+        else: # all
+            conditions.append("""(
+                title LIKE ? OR sermon_title LIKE ? OR match_scripture(scripture, ?) = 1 OR preacher LIKE ? 
+                OR announcements LIKE ? OR servants LIKE ? OR offerings LIKE ? OR finances LIKE ?
+            )""")
+            params.extend([search_pattern, search_pattern, query, search_pattern, search_pattern, search_pattern, search_pattern, search_pattern])
+            
+    where_clause = f"WHERE {' AND '.join(conditions)}"
+    sql = f"SELECT finances FROM bulletins {where_clause}"
+    cursor.execute(sql, tuple(params))
+    rows = cursor.fetchall()
+    conn.close()
+    
+    total_inc = 0
+    total_exp = 0
+    count = 0
+    
+    for r in rows:
+        f_raw = r["finances"]
+        if not f_raw:
+            continue
+        try:
+            f = json.loads(f_raw) if isinstance(f_raw, str) else f_raw
+        except:
+            continue
+        if not isinstance(f, dict):
+            continue
+            
+        inc = f.get("수입") or f.get("income") or {}
+        exp = f.get("지출") or f.get("expense") or {}
+        
+        inc_val = 0
+        if isinstance(inc, dict):
+            inc_val = inc.get("총수입") or inc.get("total") or 0
+            if not inc_val:
+                inc_val = sum([v for k, v in inc.items() if isinstance(v, (int, float)) and "총" not in k and "합계" not in k])
+                
+        exp_val = 0
+        if isinstance(exp, dict):
+            exp_val = exp.get("총지출") or exp.get("total") or 0
+            if not exp_val:
+                exp_val = sum([v for k, v in exp.items() if isinstance(v, (int, float)) and "총" not in k and "합계" not in k])
+                
+        total_inc += (int(inc_val) if inc_val else 0)
+        total_exp += (int(exp_val) if exp_val else 0)
+        count += 1
+        
+    return {
+        "total_income": total_inc,
+        "total_expense": total_exp,
+        "total_diff": total_inc - total_exp,
+        "bulletin_count": count,
+        "year": year or "all"
+    }
+
 if __name__ == "__main__":
     init_db()
     print("[*] DB migrated successfully.")

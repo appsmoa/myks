@@ -102,6 +102,7 @@ def api_list_bulletins(request: Request, q: Optional[str] = None, type: str = "a
     offset = (page - 1) * page_size
     items = database.list_bulletins(query=q, search_type=type, year=year, limit=page_size, offset=offset)
     total_count = database.count_bulletins(query=q, search_type=type, year=year)
+    finance_summary = database.get_finance_summary(query=q, search_type=type, year=year)
     
     # JSON 직렬화 정제
     results = []
@@ -131,7 +132,8 @@ def api_list_bulletins(request: Request, q: Optional[str] = None, type: str = "a
         "total": total_count,
         "page": page,
         "page_size": page_size,
-        "total_pages": (total_count + page_size - 1) // page_size if total_count > 0 else 1
+        "total_pages": (total_count + page_size - 1) // page_size if total_count > 0 else 1,
+        "finance_summary": finance_summary
     }
 
 @app.get("/api/years")
