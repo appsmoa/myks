@@ -2036,9 +2036,12 @@
         const res = await fetch(`/api/bulletins/${currentBulletinId}/analyze`, { method: 'POST' });
         if (res.ok) {
           const data = await res.json();
-          showToast('주보 데이터가 성공적으로 재정리되었습니다!');
+          showToast('주보 텍스트 정리가 완료되었습니다. AI가 기도 시작 시간을 분석 중입니다...');
           await openDetailModal(currentBulletinId);
           loadBulletins();
+
+          // 백그라운드 기도 타임스탬프 완료 시 모달 실시간 자동 갱신
+          pollPrayerTimestamp(currentBulletinId);
         } else {
           let errDetail = `서버 응답 오류 (${res.status})`;
           try {
@@ -2059,6 +2062,36 @@
           smallBtn.innerHTML = origSmallText;
         }
       }
+    }
+
+    function pollPrayerTimestamp(bulletinId) {
+      let attempts = 0;
+      const maxAttempts = 15; // 2.5초 * 15 = 약 37초 동안 체크
+      const timer = setInterval(async () => {
+        attempts++;
+        if (attempts > maxAttempts) {
+          clearInterval(timer);
+          return;
+        }
+        try {
+          const r = await fetch(`/api/bulletins/${bulletinId}`);
+          if (r.ok) {
+            const b = await r.json();
+            const yt = b.youtube_urls || {};
+            // t= 파라미터가 포함된 링크가 있는지 확인
+            const hasTimestamp = Object.values(yt).some(url => url && /[?&]t=\d+s?/.test(url));
+            if (hasTimestamp) {
+              clearInterval(timer);
+              // 현재 해당 모달이 열려있다면 모달 내용 자동 갱신!
+              if (currentBulletinId === bulletinId) {
+                await openDetailModal(bulletinId);
+                loadBulletins();
+                showToast('✨ 대표기도 시작 시간 자동 연결이 완료되었습니다!');
+              }
+            }
+          }
+        } catch (_) {}
+      }, 2500);
     }
 
     async function triggerCrawl() {

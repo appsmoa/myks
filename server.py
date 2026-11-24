@@ -266,14 +266,26 @@ def api_trigger_crawl(background_tasks: BackgroundTasks, limit: int = 5, use_vis
 
 def background_enrich_prayer_timestamps(bulletin_id: int, yt_links: dict, servants: dict):
     try:
-        enriched = prayer_time_analyzer.enrich_youtube_urls_with_prayer_timestamps(yt_links, servants or {})
+        # servants가 문자열인 경우 JSON 파싱
+        parsed_servants = servants
+        if isinstance(servants, str):
+            try:
+                parsed_servants = json.loads(servants)
+            except Exception:
+                pass
+
+        enriched = prayer_time_analyzer.enrich_youtube_urls_with_prayer_timestamps(yt_links, parsed_servants or {})
         if enriched:
             conn = database.get_connection()
             cursor = conn.cursor()
             cursor.execute("UPDATE bulletins SET youtube_urls = ? WHERE id = ?", (json.dumps(enriched, ensure_ascii=False), bulletin_id))
             conn.commit()
             conn.close()
-            print(f"[Server Background] Bulletin #{bulletin_id} prayer timestamps enriched successfully!")
+            print(f"[Server Background] Bulletin #{bulletin_id} prayer timestamps enriched successfully: {enriched}")
+            try:
+                github_sync.sync_db_to_github()
+            except Exception as ge:
+                print(f"[Server Background] GitHub sync error: {ge}")
     except Exception as e:
         print(f"[Server Background Error] {e}")
 
