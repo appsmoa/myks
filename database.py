@@ -2,6 +2,7 @@ import sqlite3
 import json
 import os
 import re
+import time
 from typing import Dict, Any, List, Optional
 
 DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bulletin.db")
@@ -266,8 +267,51 @@ def init_db():
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_bulletins_sermon ON bulletins(sermon_title);")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_bulletins_preacher ON bulletins(preacher);")
     
+    # 실시간 재정리 진행 상태 영구 보존 테이블 (다중 워커/프로세스 공유)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS analysis_jobs (
+        bulletin_id INTEGER PRIMARY KEY,
+        status TEXT,
+        stage INTEGER,
+        message TEXT,
+        stages_json TEXT,
+        updated_at REAL
+    );
+    """)
+
     conn.commit()
     conn.close()
+
+def save_analysis_job(bulletin_id: int, status: str, stage: int, message: str, stages: list):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+    INSERT INTO analysis_jobs (bulletin_id, status, stage, message, stages_json, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(bulletin_id) DO UPDATE SET
+        status = excluded.status,
+        stage = excluded.stage,
+        message = excluded.message,
+        stages_json = excluded.stages_json,
+        updated_at = excluded.updated_at
+    """, (bulletin_id, status, stage, message, json.dumps(stages, ensure_ascii=False), time.time()))
+    conn.commit()
+    conn.close()
+
+def get_analysis_job(bulletin_id: int) -> Optional[Dict[str, Any]]:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM analysis_jobs WHERE bulletin_id = ?", (bulletin_id,))
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        d = dict(row)
+        try:
+            d["stages"] = json.loads(d["stages_json"]) if d.get("stages_json") else []
+        except:
+            d["stages"] = []
+        return d
+    return None
 
 def save_bulletin(data: Dict[str, Any]):
     conn = get_connection()

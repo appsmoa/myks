@@ -295,6 +295,10 @@ def run_full_reanalyze_pipeline(b_id: int):
             bulletin_analysis_jobs[post_num] = obj
         if b_id != real_id:
             bulletin_analysis_jobs[b_id] = obj
+        try:
+            database.save_analysis_job(real_id, obj["status"], obj.get("stage", 1), obj.get("message", ""), obj.get("stages", []))
+        except Exception as dbe:
+            print(f"[DB Job Save Error] {dbe}")
 
     image_urls = json.loads(item["image_urls"]) if item.get("image_urls") else []
     if not image_urls:
@@ -475,6 +479,10 @@ def api_analyze_single(b_id: int, background_tasks: BackgroundTasks):
     if post_num:
         bulletin_analysis_jobs[post_num] = initial_job
     bulletin_analysis_jobs[b_id] = initial_job
+    try:
+        database.save_analysis_job(real_id, "running", 1, initial_job["message"], initial_job["stages"])
+    except Exception as dbe:
+        print(f"[DB Job Save Error] {dbe}")
 
     background_tasks.add_task(run_full_reanalyze_pipeline, b_id)
     return {"status": "started", "message": "주보 및 기도영상 재정리가 백그라운드에서 시작되었습니다."}
@@ -482,10 +490,24 @@ def api_analyze_single(b_id: int, background_tasks: BackgroundTasks):
 @app.get("/api/bulletins/{b_id}/analyze-status")
 def api_get_bulletin_analyze_status(b_id: int):
     item = database.get_bulletin_by_id(b_id)
+    real_id = item["id"] if item else b_id
+
+    # 1. 메모리 딕셔너리 확인
+    job = bulletin_analysis_jobs.get(real_id) or (bulletin_analysis_jobs.get(item.get("post_num")) if item else None) or bulletin_analysis_jobs.get(b_id)
+    if job:
+        return job
+
+    # 2. SQLite DB analysis_jobs 테이블 확인 (다중 프로세스/워커 완벽 동기화!)
+    try:
+        db_job = database.get_analysis_job(real_id)
+        if db_job:
+            # 10분 이내의 상태 정보이면 반환
+            if time.time() - db_job.get("updated_at", 0) < 600:
+                return db_job
+    except Exception as dbe:
+        print(f"[DB Job Read Error] {dbe}")
+
     if item:
-        job = bulletin_analysis_jobs.get(item["id"]) or bulletin_analysis_jobs.get(item.get("post_num")) or bulletin_analysis_jobs.get(b_id)
-        if job:
-            return job
         is_analyzed = item.get("status") == "analyzed"
         return {
             "status": "completed" if is_analyzed else "idle",
@@ -494,9 +516,6 @@ def api_get_bulletin_analyze_status(b_id: int):
             "stages": []
         }
 
-    job = bulletin_analysis_jobs.get(b_id)
-    if job:
-        return job
     return {"status": "none", "stage": 0, "message": "작업 내역 없음", "stages": []}
 
 @app.get("/api/analysis-status")

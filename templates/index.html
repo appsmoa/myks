@@ -2142,7 +2142,26 @@
     }
 
     let _pollStatusInterval = null;
+    let _secondsInterval = null;
     let _analysisStartTime = null;
+
+    function startSecondsTimer() {
+      if (_secondsInterval) clearInterval(_secondsInterval);
+      _secondsInterval = setInterval(() => {
+        if (_analysisStartTime) {
+          const elapsedSec = Math.floor((Date.now() - _analysisStartTime) / 1000);
+          const timerBadge = document.getElementById('reanalyzeTimeElapsed');
+          if (timerBadge) timerBadge.innerText = `${elapsedSec}초 경과`;
+        }
+      }, 1000);
+    }
+
+    function stopSecondsTimer() {
+      if (_secondsInterval) {
+        clearInterval(_secondsInterval);
+        _secondsInterval = null;
+      }
+    }
 
     function setReanalyzeButtonsBusy(busy) {
       const bigBtn = document.getElementById('modalReanalyzeBtn');
@@ -2282,7 +2301,11 @@
           
           updateProgressUI(job);
 
-          if (job.status === 'completed') {
+          // 진짜 4단계 완료 검증 (단순 status=completed가 아니라 4단계이거나 stage 4가 완료된 경우)
+          const isRealCompleted = job.status === 'completed' && (job.stage === 4 || (job.stages && job.stages.length >= 4 && job.stages[3].status === 'completed'));
+
+          if (isRealCompleted) {
+            stopSecondsTimer();
             clearInterval(_pollStatusInterval);
             _pollStatusInterval = null;
             setReanalyzeButtonsBusy(false);
@@ -2294,6 +2317,7 @@
             loadBulletins();
             showToast('✨ 주보 데이터 재정리 및 기도영상 타임스탬프 연결이 완료되었습니다!');
           } else if (job.status === 'error') {
+            stopSecondsTimer();
             clearInterval(_pollStatusInterval);
             _pollStatusInterval = null;
             setReanalyzeButtonsBusy(false);
@@ -2314,6 +2338,10 @@
           const card = document.getElementById('modalAnalysisProgressCard');
           if (card) card.classList.remove('hidden');
           setReanalyzeButtonsBusy(true);
+          if (!_analysisStartTime) {
+            _analysisStartTime = Date.now() - ((job.stage || 1) * 7000);
+          }
+          startSecondsTimer();
           updateProgressUI(job);
           if (!_pollStatusInterval) {
             startStatusPolling(bulletinId);
@@ -2336,6 +2364,7 @@
       if (alertBox) alertBox.classList.add('hidden');
 
       _analysisStartTime = Date.now();
+      startSecondsTimer();
       setReanalyzeButtonsBusy(true);
 
       // 1단계 즉시 진행 표시
