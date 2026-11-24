@@ -337,6 +337,9 @@ def get_bulletin_by_id(b_id: int) -> Optional[Dict[str, Any]]:
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM bulletins WHERE id = ?", (b_id,))
     row = cursor.fetchone()
+    if not row:
+        cursor.execute("SELECT * FROM bulletins WHERE post_num = ?", (b_id,))
+        row = cursor.fetchone()
     conn.close()
     if row:
         return dict(row)
