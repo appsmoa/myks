@@ -6,10 +6,72 @@ import re
 from typing import Optional, Dict
 from dotenv import load_dotenv
 
+def extract_prayer_name_from_servants(servants: dict, worship_type: str) -> Optional[str]:
+    """
+    주보 servants 딕셔너리의 다양한 중첩 구조에서 9시, 11시, 수요 기도자 성함을 완벽하게 추출합니다.
+    지원 패턴:
+    1. {"9시_기도": "이름", "11시_기도": "이름"}
+    2. {"대표기도": {"9시예배": "이름", "11시예배": "이름", "수요찬양기도회": "이름"}}
+    3. {"9시_예배": {"기도": "이름"}, "11시_예배": {"기도": "이름"}}
+    4. {"기도": {"9시": "이름", "11시": "이름", "수요": "이름"}}
+    5. 문자열 전체 검색
+    """
+    if not servants:
+        return None
+
+    if isinstance(servants, str):
+        try:
+            servants = json.loads(servants)
+        except Exception:
+            pass
+
+    if not isinstance(servants, dict):
+        return None
+
+    # 패턴 1: 직접 키 (예: 9시_기도, 11시_기도, 수요_기도)
+    if worship_type == "9시":
+        for k in ["9시_기도", "9시기도", "1부_기도", "1부기도"]:
+            if servants.get(k) and isinstance(servants[k], str):
+                return servants[k].strip()
+    elif worship_type == "11시":
+        for k in ["11시_기도", "11시기도", "2부_기도", "2부기도"]:
+            if servants.get(k) and isinstance(servants[k], str):
+                return servants[k].strip()
+    elif worship_type == "수요":
+        for k in ["수요_기도", "수요기도", "수요찬양_기도"]:
+            if servants.get(k) and isinstance(servants[k], str):
+                return servants[k].strip()
+
+    # 패턴 2: 대표기도 하위 딕셔너리 (예: {"대표기도": {"9시예배": "...", "11시예배": "..."}})
+    rep_prayer = servants.get("대표기도") or servants.get("기도")
+    if isinstance(rep_prayer, dict):
+        for k, v in rep_prayer.items():
+            if isinstance(v, str):
+                if worship_type == "9시" and any(x in k for x in ["9시", "1부"]):
+                    return v.strip()
+                elif worship_type == "11시" and any(x in k for x in ["11시", "2부"]):
+                    return v.strip()
+                elif worship_type == "수요" and "수요" in k:
+                    return v.strip()
+
+    # 패턴 3: 예배별 하위 딕셔너리 (예: {"9시_예배": {"기도": "..."}})
+    for w_key in servants.keys():
+        w_val = servants[w_key]
+        if isinstance(w_val, dict):
+            p_val = w_val.get("기도") or w_val.get("대표기도")
+            if p_val and isinstance(p_val, str):
+                if worship_type == "9시" and any(x in w_key for x in ["9시", "1부"]):
+                    return p_val.strip()
+                elif worship_type == "11시" and any(x in w_key for x in ["11시", "2부"]):
+                    return p_val.strip()
+                elif worship_type == "수요" and "수요" in w_key:
+                    return p_val.strip()
+
+    return None
+
 def extract_prayer_timestamp_with_gemini(youtube_url: str, prayer_name: str, worship_type: str = "") -> Optional[int]:
     """
     Gemini 비전/오디오 모델을 사용하여 유튜브 예배 영상에서 대표기도자가 기도를 시작하는 시점(초 단위)을 자동 추출합니다.
-    성공 시 시작 초(int, 예: 1523 -> 25분 23초)를 반환하고, 실패 시 None을 반환합니다.
     """
     if not youtube_url or not prayer_name:
         return None
@@ -29,7 +91,6 @@ def extract_prayer_timestamp_with_gemini(youtube_url: str, prayer_name: str, wor
     if not keys:
         return None
 
-    # videoId 추출
     vid_match = re.search(r'(?:v=|\/embed\/|youtu\.be\/)([a-zA-Z0-9_-]{11})', youtube_url)
     if not vid_match:
         return None
@@ -46,12 +107,13 @@ def extract_prayer_timestamp_with_gemini(youtube_url: str, prayer_name: str, wor
 
 영상에서 예배 전 찬양이 끝나고 강단에 나와 대표기도([{clean_name}])가 시작되는 정확한 시점(타임스탬프)을 찾아주세요.
 화면 하단에 [기도 | {clean_name}] 자막이 나타나거나 기도자가 마이크를 잡고 기도를 시작하는 순간(초 단위)입니다.
+일반적으로 찬양 후 15분~25분 사이에 위치합니다.
 
 반드시 다음 JSON 형식으로만 응답해 주세요:
 {{
   "prayer_name": "{clean_name}",
   "timestamp_str": "MM:SS",
-  "total_seconds": 1523,
+  "total_seconds": 1123,
   "confidence": "high/medium/low",
   "evidence": "기도 시작 증거 설명"
 }}
@@ -76,15 +138,16 @@ def extract_prayer_timestamp_with_gemini(youtube_url: str, prayer_name: str, wor
         }
     }
 
-    # 지원되는 고성능 모델 우선순위
-    models = ["gemini-3.1-flash-lite", "gemini-3-flash-preview", "gemini-flash-latest"]
+    # 대용량 비디오 스캔에 가장 안정적이고 빠른 모델 순서
+    models = ["gemini-3.1-flash-lite", "gemini-3-flash-preview"]
 
     for key_idx, key in enumerate(keys):
         for model in models:
             api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
             try:
                 print(f"[PrayerAnalyzer] 영상 분석 요청: {clean_name} ({clean_video_url}, {model}, Key #{key_idx + 1})...")
-                res = requests.post(api_url, json=payload, headers={"Content-Type": "application/json"}, timeout=30)
+                # 비디오 분석을 위해 충분한 타임아웃(65초) 부여
+                res = requests.post(api_url, json=payload, headers={"Content-Type": "application/json"}, timeout=65)
                 if res.status_code == 200:
                     res_data = res.json()
                     parts = res_data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
@@ -107,53 +170,22 @@ def extract_prayer_timestamp_with_gemini(youtube_url: str, prayer_name: str, wor
     return None
 
 def attach_timestamp_to_youtube_url(url: str, seconds: int) -> str:
-    """
-    유튜브 URL에 시작 초(&t=1523s)를 붙입니다.
-    """
     if not url or not seconds:
         return url
     base_url = re.sub(r'[?&]t=\d+s?', '', url)
     sep = '&' if '?' in base_url else '?'
     return f"{base_url}{sep}t={seconds}s"
 
-def extract_prayer_name_from_servants(servants: dict, worship_type: str) -> Optional[str]:
-    """
-    주보 servants 딕셔너리에서 9시, 11시, 수요 기도자 성함을 추출합니다.
-    """
-    if not servants or not isinstance(servants, dict):
-        return None
-
-    if worship_type == "9시":
-        v = servants.get("9시_예배") or servants.get("1부_예배") or servants.get("9시")
-        if isinstance(v, dict):
-            return v.get("기도") or v.get("대표기도")
-        return servants.get("9시_기도")
-    elif worship_type == "11시":
-        v = servants.get("11시_예배") or servants.get("2부_예배") or servants.get("11시")
-        if isinstance(v, dict):
-            return v.get("기도") or v.get("대표기도")
-        return servants.get("11시_기도")
-    elif worship_type == "수요":
-        v = servants.get("수요_예배") or servants.get("수요예배")
-        if isinstance(v, dict):
-            return v.get("기도") or v.get("대표기도")
-        return servants.get("수요_기도") or servants.get("수요기도")
-    return None
-
 def enrich_youtube_urls_with_prayer_timestamps(yt_links: dict, servants: dict) -> dict:
-    """
-    yt_links의 각 예배 영상(9시, 11시, 수요)에 대해 기도자 성함을 찾아
-    Gemini AI로 기도 시작 타임스탬프를 추출하여 URL에 &t=...를 부착합니다.
-    """
     if not yt_links:
         return {}
 
     updated = dict(yt_links)
+    # 11시(본예배)를 가장 먼저 분석하고, 9시 순으로 진행
     for w_type in ["11시", "9시", "수요"]:
         url = updated.get(w_type)
         if not url:
             continue
-        # 이미 t 파라미터가 있으면 유지
         if re.search(r'[?&]t=\d+s?', url):
             continue
 

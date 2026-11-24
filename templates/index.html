@@ -1935,20 +1935,35 @@
 
             let ytBtn = '';
             if (ytLink) {
-              let modalTimeLabel = '실시간 예배 영상 보기';
               const tMatch = ytLink.match(/[?&]t=(\d+)s?/);
+              const isAnalyzing = window._analyzingBulletins && window._analyzingBulletins.has(currentBulletinId);
+
               if (tMatch) {
                 const totalSec = parseInt(tMatch[1]);
                 const min = Math.floor(totalSec / 60);
                 const sec = totalSec % 60;
-                modalTimeLabel = `기도 영상 보기 (${min}:${sec < 10 ? '0' : ''}${sec}~)`;
+                const modalTimeLabel = `기도 영상 보기 (${min}:${sec < 10 ? '0' : ''}${sec}~)`;
+                ytBtn = `
+                  <a href="${ytLink}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-600 border border-rose-200 hover:border-rose-600 text-rose-600 hover:text-white text-xs font-black transition shadow-2xs group/yt">
+                    <i class="fa-brands fa-youtube text-sm mr-1.5 text-rose-600 group-hover/yt:text-white"></i>
+                    <span>${modalTimeLabel}</span>
+                  </a>
+                `;
+              } else if (isAnalyzing) {
+                ytBtn = `
+                  <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-black shadow-2xs animate-pulse">
+                    <i class="fa-solid fa-circle-notch fa-spin text-indigo-600 mr-1.5"></i>
+                    <span>AI 기도 시간 분석 중...</span>
+                  </span>
+                `;
+              } else {
+                ytBtn = `
+                  <a href="${ytLink}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-600 border border-rose-200 hover:border-rose-600 text-rose-600 hover:text-white text-xs font-black transition shadow-2xs group/yt">
+                    <i class="fa-brands fa-youtube text-sm mr-1.5 text-rose-600 group-hover/yt:text-white"></i>
+                    <span>실시간 예배 영상 보기</span>
+                  </a>
+                `;
               }
-              ytBtn = `
-                <a href="${ytLink}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-600 border border-rose-200 hover:border-rose-600 text-rose-600 hover:text-white text-xs font-black transition shadow-2xs group/yt">
-                  <i class="fa-brands fa-youtube text-sm mr-1.5 text-rose-600 group-hover/yt:text-white"></i>
-                  <span>${modalTimeLabel}</span>
-                </a>
-              `;
             }
 
             return `
@@ -2064,13 +2079,22 @@
       }
     }
 
+    window._analyzingBulletins = window._analyzingBulletins || new Set();
+
     function pollPrayerTimestamp(bulletinId) {
+      window._analyzingBulletins.add(bulletinId);
+
       let attempts = 0;
-      const maxAttempts = 15; // 2.5초 * 15 = 약 37초 동안 체크
+      const maxAttempts = 22; // 3초 * 22 = 약 66초 동안 체크
       const timer = setInterval(async () => {
         attempts++;
         if (attempts > maxAttempts) {
           clearInterval(timer);
+          window._analyzingBulletins.delete(bulletinId);
+          if (currentBulletinId === bulletinId) {
+            await openDetailModal(bulletinId);
+            loadBulletins();
+          }
           return;
         }
         try {
@@ -2082,6 +2106,7 @@
             const hasTimestamp = Object.values(yt).some(url => url && /[?&]t=\d+s?/.test(url));
             if (hasTimestamp) {
               clearInterval(timer);
+              window._analyzingBulletins.delete(bulletinId);
               // 현재 해당 모달이 열려있다면 모달 내용 자동 갱신!
               if (currentBulletinId === bulletinId) {
                 await openDetailModal(bulletinId);
@@ -2091,7 +2116,7 @@
             }
           }
         } catch (_) {}
-      }, 2500);
+      }, 3000);
     }
 
     async function triggerCrawl() {
