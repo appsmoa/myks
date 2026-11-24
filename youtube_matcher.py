@@ -11,15 +11,37 @@ HEADERS = {
     "Accept-Language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7"
 }
 
-# 10분 메모리 캐시
+# 10분 메모리 캐시 및 전체 과거 스트림 사전 로드
 _cached_streams: List[dict] = []
 _cache_time: float = 0.0
 
+# 과거 677건의 전체 스트림 데이터 사전 로드
+HISTORY_FILE = "youtube_all_streams.json"
+_history_loaded = False
+
+def _load_history_streams():
+    global _cached_streams, _history_loaded
+    if _history_loaded:
+        return
+    import os
+    file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), HISTORY_FILE)
+    if os.path.exists(file_path):
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                _cached_streams = json.load(f)
+                _history_loaded = True
+                print(f"[YouTube Matcher] 과거 전체 스트림 {_cached_streams.__len__()}건 로드 완료!")
+        except Exception as e:
+            print(f"[YouTube Matcher] 과거 스트림 로드 오류: {e}")
+
+_load_history_streams()
+
 def fetch_youtube_streams(force_refresh: bool = False) -> List[dict]:
     """
-    금성교회 유튜브 라이브 스트림 탭에서 최신 예배 영상 목록을 가져와 파싱합니다.
+    금성교회 유튜브 라이브 스트림 탭에서 최신 예배 영상 목록을 가져와 기존 목록과 병합합니다.
     """
     global _cached_streams, _cache_time
+    _load_history_streams()
     now = time.time()
     if not force_refresh and _cached_streams and (now - _cache_time < 600):
         return _cached_streams
@@ -107,10 +129,13 @@ def fetch_youtube_streams(force_refresh: bool = False) -> List[dict]:
                     'url': f"https://www.youtube.com/watch?v={vid}"
                 })
 
-        _cached_streams = parsed
+        # 기존 과거 전체 캐시와 최신 스트림 병합
+        existing_vids = {x['videoId'] for x in _cached_streams}
+        new_items = [x for x in parsed if x['videoId'] not in existing_vids]
+        _cached_streams = new_items + _cached_streams
         _cache_time = now
-        print(f"[YouTube Matcher] 성공적으로 {len(parsed)}건의 예배 스트림 영상을 파싱했습니다.")
-        return parsed
+        print(f"[YouTube Matcher] 성공적으로 최신 {len(new_items)}건 추가, 총 {len(_cached_streams)}건 유지 중.")
+        return _cached_streams
 
     except Exception as e:
         print(f"[YouTube Matcher Error] {e}")
@@ -157,20 +182,24 @@ def get_youtube_links_for_bulletin(bulletin_date_str: str) -> Dict[str, str]:
 
     results = {}
 
-    # 1. 9시 예배
-    item_9 = next((x for x in streams if x['month'] == m and x['day'] == d and x['type'] == '9시'), None)
+    # 1. 9시 예배 (연도, 월, 일 정밀 일치)
+    item_9 = next((x for x in streams if x.get('year') == y and x['month'] == m and x['day'] == d and x['type'] == '9시'), None)
+    if not item_9 and y == 2026: # 2026년은 fallback 허용
+        item_9 = next((x for x in streams if x['month'] == m and x['day'] == d and x['type'] == '9시'), None)
     if item_9:
         results['9시'] = item_9['url']
 
-    # 2. 11시 예배
-    item_11 = next((x for x in streams if x['month'] == m and x['day'] == d and x['type'] == '11시'), None)
+    # 2. 11시 예배 (연도, 월, 일 정밀 일치)
+    item_11 = next((x for x in streams if x.get('year') == y and x['month'] == m and x['day'] == d and x['type'] == '11시'), None)
+    if not item_11 and y == 2026:
+        item_11 = next((x for x in streams if x['month'] == m and x['day'] == d and x['type'] == '11시'), None)
     if item_11:
         results['11시'] = item_11['url']
 
-    # 3. 수요 예배 (직전 수요일 우선, 또는 주일 기준 4일 이내 수요일)
-    item_wed = next((x for x in streams if x['month'] == wm and x['day'] == wd and x['type'] == '수요'), None)
+    # 3. 수요 예배 (연도, 월, 일 정밀 일치)
+    item_wed = next((x for x in streams if x.get('year') == wed_dt.year and x['month'] == wm and x['day'] == wd and x['type'] == '수요'), None)
     if not item_wed:
-        item_wed = next((x for x in streams if x['month'] == m and abs(x['day'] - d) <= 4 and x['type'] == '수요'), None)
+        item_wed = next((x for x in streams if x.get('year') == y and x['month'] == m and abs(x['day'] - d) <= 4 and x['type'] == '수요'), None)
     if item_wed:
         results['수요'] = item_wed['url']
 
