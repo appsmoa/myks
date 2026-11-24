@@ -8,6 +8,8 @@ load_dotenv(override=True)
 
 import database
 import crawler
+import youtube_matcher
+import prayer_time_analyzer
 
 is_running = False
 
@@ -72,6 +74,16 @@ def run_batch_analysis(limit=None, delay=2.5):
                     "raw_analysis_json": analysis,
                     "status": "analyzed"
                 }
+
+                # 유튜브 스트림 예배 영상 링크 및 대표기도 타임스탬프 자동 매칭
+                try:
+                    yt_links = youtube_matcher.get_youtube_links_for_bulletin(update_data["date"])
+                    if yt_links:
+                        yt_links = prayer_time_analyzer.enrich_youtube_urls_with_prayer_timestamps(yt_links, update_data.get("servants") or {})
+                        update_data["youtube_urls"] = yt_links
+                except Exception as e:
+                    print(f"  [!] YouTube 매칭 오류: {e}")
+
                 database.save_bulletin(update_data)
                 success_count += 1
                 print(f"  [v] 완료: {update_data['date']} | 설교: {update_data['sermon_title']} | 설교자: {update_data['preacher']}")

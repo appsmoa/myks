@@ -12,6 +12,7 @@ import urllib.parse
 from dotenv import load_dotenv
 from database import init_db, save_bulletin, get_bulletin_by_id
 import youtube_matcher
+import prayer_time_analyzer
 
 load_dotenv(override=True)
 
@@ -310,12 +311,19 @@ def process_single_post(post, use_vision=True):
         else:
             bulletin_record["status"] = "pending_analysis"
             
-    # 유튜브 스트림 예배 영상 링크 자동 매칭
+    # 유튜브 스트림 예배 영상 링크 자동 매칭 및 대표기도 타임스탬프 추출
     try:
         yt_links = youtube_matcher.get_youtube_links_for_bulletin(bulletin_record.get("date") or "")
         if yt_links:
+            # Gemini AI를 통한 대표기도 시작 타임스탬프 자동 추출 및 부착
+            try:
+                servants_data = bulletin_record.get("servants") or {}
+                yt_links = prayer_time_analyzer.enrich_youtube_urls_with_prayer_timestamps(yt_links, servants_data)
+            except Exception as e:
+                print(f"  [!] 기도 타임스탬프 추출 오류: {e}")
+
             bulletin_record["youtube_urls"] = yt_links
-            print(f"      유튜브 영상 매칭: {list(yt_links.keys())}")
+            print(f"      유튜브 영상 매칭 및 기도 타임스탬프 완료: {list(yt_links.keys())}")
     except Exception as e:
         print(f"  [!] YouTube 매칭 오류: {e}")
 
