@@ -1868,6 +1868,8 @@
       if (!preserveCard) {
         const card = document.getElementById('modalAnalysisProgressCard');
         if (card) card.classList.add('hidden');
+        const alertBox = document.getElementById('reanalyzeAlertBox');
+        if (alertBox) alertBox.classList.add('hidden');
         checkActiveAnalysisStatus(id);
       }
       try {

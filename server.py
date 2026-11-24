@@ -457,6 +457,25 @@ def api_analyze_single(b_id: int, background_tasks: BackgroundTasks):
     if job and job.get("status") == "running" and (time.time() - job.get("updated_at", 0) < 180):
         return {"status": "already_running", "message": "이미 재정리 작업이 진행 중입니다.", "job": job}
 
+    real_id = item["id"]
+    post_num = item.get("post_num")
+    initial_job = {
+        "status": "running",
+        "stage": 1,
+        "message": "1단계: Gemini Vision으로 주보 이미지 텍스트 분석 중...",
+        "updated_at": time.time(),
+        "stages": [
+            {"name": "주보 이미지 Vision 분석", "status": "running", "detail": "설교, 본문, 기도자, 헌금 추출 중 (약 5~10초)"},
+            {"name": "유튜브 예배 영상 매칭", "status": "pending", "detail": "대기 중"},
+            {"name": "Gemini 영상 대표기도 탐색", "status": "pending", "detail": "대기 중"},
+            {"name": "데이터 저장 및 완료", "status": "pending", "detail": "대기 중"}
+        ]
+    }
+    bulletin_analysis_jobs[real_id] = initial_job
+    if post_num:
+        bulletin_analysis_jobs[post_num] = initial_job
+    bulletin_analysis_jobs[b_id] = initial_job
+
     background_tasks.add_task(run_full_reanalyze_pipeline, b_id)
     return {"status": "started", "message": "주보 및 기도영상 재정리가 백그라운드에서 시작되었습니다."}
 
