@@ -2030,20 +2030,25 @@
         smallBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-indigo-600 mr-1.5"></i><span>정리 중...</span>';
       }
 
-      showToast('AI가 주보 이미지를 정밀 분석하여 데이터를 재정리하는 중입니다... (약 5~10초 소요)');
+      showToast('AI가 주보 데이터를 재정리하는 중입니다... (약 3~5초 소요)');
 
       try {
         const res = await fetch(`/api/bulletins/${currentBulletinId}/analyze`, { method: 'POST' });
-        const data = await res.json();
         if (res.ok) {
+          const data = await res.json();
           showToast('주보 데이터가 성공적으로 재정리되었습니다!');
           await openDetailModal(currentBulletinId);
           loadBulletins();
         } else {
-          showToast(data.detail || '정리 실패', true);
+          let errDetail = `서버 응답 오류 (${res.status})`;
+          try {
+            const errJson = await res.json();
+            if (errJson && errJson.detail) errDetail = errJson.detail;
+          } catch (_) {}
+          showToast('정리 실패: ' + errDetail, true);
         }
       } catch (err) {
-        showToast('요청 실패: ' + err.message, true);
+        showToast('통신 오류: ' + (err.message || '네트워크 상태를 확인해 주세요.'), true);
       } finally {
         if (bigBtn) {
           bigBtn.disabled = false;

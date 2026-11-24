@@ -264,8 +264,21 @@ def api_trigger_crawl(background_tasks: BackgroundTasks, limit: int = 5, use_vis
     return {"status": "ok", "message": f"최신 {limit}건 크롤링 및 GitHub 자동 동기화 작업이 시작되었습니다."}
     return {"status": "ok", "message": f"최신 {limit}건 크롤링 및 정리 백그라운드 작업이 시작되었습니다."}
 
+def background_enrich_prayer_timestamps(bulletin_id: int, yt_links: dict, servants: dict):
+    try:
+        enriched = prayer_time_analyzer.enrich_youtube_urls_with_prayer_timestamps(yt_links, servants or {})
+        if enriched:
+            conn = database.get_connection()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE bulletins SET youtube_urls = ? WHERE id = ?", (json.dumps(enriched, ensure_ascii=False), bulletin_id))
+            conn.commit()
+            conn.close()
+            print(f"[Server Background] Bulletin #{bulletin_id} prayer timestamps enriched successfully!")
+    except Exception as e:
+        print(f"[Server Background Error] {e}")
+
 @app.post("/api/bulletins/{b_id}/analyze")
-def api_analyze_single(b_id: int):
+def api_analyze_single(b_id: int, background_tasks: BackgroundTasks):
     item = database.get_bulletin_by_id(b_id)
     if not item:
         raise HTTPException(status_code=404, detail="Bulletin not found")
@@ -280,11 +293,6 @@ def api_analyze_single(b_id: int):
         
     target_date = analysis.get("date") or item.get("date") or ""
     yt_links = youtube_matcher.get_youtube_links_for_bulletin(target_date)
-    if yt_links:
-        try:
-            yt_links = prayer_time_analyzer.enrich_youtube_urls_with_prayer_timestamps(yt_links, analysis.get("servants") or {})
-        except Exception as e:
-            print(f"[Server] Prayer timestamp enrichment failed: {e}")
 
     update_data = {
         "id": b_id,
@@ -308,6 +316,11 @@ def api_analyze_single(b_id: int):
         "status": "analyzed"
     }
     database.save_bulletin(update_data)
+
+    # 기도 타임스탬프 비디오 분석은 백그라운드 태스크로 위임 (HTTP 요청 타임아웃 100% 방지 및 즉각 응답 보장!)
+    if yt_links and analysis.get("servants"):
+        background_tasks.add_task(background_enrich_prayer_timestamps, b_id, yt_links, analysis.get("servants"))
+
     return {"status": "ok", "data": update_data}
 
 @app.get("/api/analysis-status")

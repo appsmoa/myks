@@ -84,7 +84,7 @@ def extract_prayer_timestamp_with_gemini(youtube_url: str, prayer_name: str, wor
             api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
             try:
                 print(f"[PrayerAnalyzer] 영상 분석 요청: {clean_name} ({clean_video_url}, {model}, Key #{key_idx + 1})...")
-                res = requests.post(api_url, json=payload, headers={"Content-Type": "application/json"}, timeout=60)
+                res = requests.post(api_url, json=payload, headers={"Content-Type": "application/json"}, timeout=30)
                 if res.status_code == 200:
                     res_data = res.json()
                     parts = res_data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
@@ -149,7 +149,7 @@ def enrich_youtube_urls_with_prayer_timestamps(yt_links: dict, servants: dict) -
         return {}
 
     updated = dict(yt_links)
-    for w_type in ["9시", "11시", "수요"]:
+    for w_type in ["11시", "9시", "수요"]:
         url = updated.get(w_type)
         if not url:
             continue
