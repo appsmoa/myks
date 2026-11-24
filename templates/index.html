@@ -87,26 +87,34 @@
         </button>
       </div>
 
-      <!-- Year Filter Row (연도별 필터 버튼 - 스크롤 없이 한눈에 들어오는 칩 배치) -->
-      <div class="mt-3.5 flex flex-wrap items-center gap-1.5 text-xs">
-        <span class="text-slate-500 font-bold flex items-center mr-1">
-          <i class="fa-regular fa-calendar mr-1.5 text-indigo-500"></i>연도:
-        </span>
-        <div id="yearButtons" class="flex flex-wrap items-center gap-1">
-          <button onclick="setYear('all')" id="year_all" class="px-2.5 py-1 rounded-lg font-bold bg-indigo-600 text-white transition shadow-xs">전체</button>
-          <button onclick="setYear('2026')" id="year_2026" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2026</button>
-          <button onclick="setYear('2025')" id="year_2025" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2025</button>
-          <button onclick="setYear('2024')" id="year_2024" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2024</button>
-          <button onclick="setYear('2023')" id="year_2023" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2023</button>
-          <button onclick="setYear('2022')" id="year_2022" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2022</button>
-          <button onclick="setYear('2021')" id="year_2021" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2021</button>
-          <button onclick="setYear('2020')" id="year_2020" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2020</button>
-          <button onclick="setYear('2019')" id="year_2019" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2019</button>
-          <button onclick="setYear('2018')" id="year_2018" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2018</button>
-          <button onclick="setYear('2017')" id="year_2017" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2017</button>
-          <button onclick="setYear('2016')" id="year_2016" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2016</button>
-          <button onclick="setYear('2015')" id="year_2015" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2015</button>
+      <!-- Year & Calendar Filter Row -->
+      <div class="mt-3.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div class="flex flex-wrap items-center gap-1.5">
+          <span class="text-slate-500 font-bold flex items-center mr-1">
+            <i class="fa-regular fa-calendar mr-1.5 text-indigo-500"></i>연도:
+          </span>
+          <div id="yearButtons" class="flex flex-wrap items-center gap-1">
+            <button onclick="setYear('all')" id="year_all" class="px-2.5 py-1 rounded-lg font-bold bg-indigo-600 text-white transition shadow-xs">전체</button>
+            <button onclick="setYear('2026')" id="year_2026" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2026</button>
+            <button onclick="setYear('2025')" id="year_2025" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2025</button>
+            <button onclick="setYear('2024')" id="year_2024" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2024</button>
+            <button onclick="setYear('2023')" id="year_2023" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2023</button>
+            <button onclick="setYear('2022')" id="year_2022" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2022</button>
+            <button onclick="setYear('2021')" id="year_2021" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2021</button>
+            <button onclick="setYear('2020')" id="year_2020" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2020</button>
+            <button onclick="setYear('2019')" id="year_2019" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2019</button>
+            <button onclick="setYear('2018')" id="year_2018" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2018</button>
+            <button onclick="setYear('2017')" id="year_2017" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2017</button>
+            <button onclick="setYear('2016')" id="year_2016" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2016</button>
+            <button onclick="setYear('2015')" id="year_2015" class="px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">2015</button>
+          </div>
         </div>
+
+        <!-- 달력으로 찾기 버튼 -->
+        <button onclick="openCalendarModal()" id="calendarBtn" class="px-3.5 py-1.5 rounded-xl font-black bg-gradient-to-r from-violet-600 via-indigo-600 to-indigo-700 hover:from-violet-700 hover:to-indigo-800 text-white shadow-xs transition flex items-center space-x-1.5 cursor-pointer">
+          <i class="fa-solid fa-calendar-days text-amber-300 text-sm"></i>
+          <span id="calendarBtnText">달력으로 날짜 찾기</span>
+        </button>
       </div>
     </div>
   </section>
@@ -266,6 +274,80 @@
 
     </div>
   </footer>
+
+  <!-- Calendar Modal (달력으로 주보 날짜 찾기) -->
+  <div id="calendarModal" class="fixed inset-0 z-50 hidden bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-3 sm:p-6" onclick="if(event.target === this) closeCalendarModal()">
+    <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-300 flex flex-col transition-all">
+      
+      <!-- Calendar Header -->
+      <div class="px-5 py-4 bg-gradient-to-r from-indigo-700 via-indigo-600 to-violet-700 text-white flex items-center justify-between">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center text-amber-300 text-base shadow-xs">
+            <i class="fa-solid fa-calendar-days"></i>
+          </div>
+          <div>
+            <h3 class="font-black text-base sm:text-lg leading-tight">날짜로 주보 찾기</h3>
+            <p class="text-xs text-indigo-100 font-medium">원하시는 주일 날짜를 선택하세요</p>
+          </div>
+        </div>
+        <button onclick="closeCalendarModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition cursor-pointer">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <!-- Month Navigation Bar -->
+      <div class="px-5 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+        <button onclick="changeCalendarMonth(-1)" class="px-2.5 py-1.5 rounded-xl border border-slate-300 hover:bg-white text-slate-700 hover:text-indigo-600 font-bold text-xs transition flex items-center space-x-1 cursor-pointer">
+          <i class="fa-solid fa-chevron-left"></i>
+          <span class="hidden sm:inline">이전달</span>
+        </button>
+        
+        <!-- Year / Month Selectors -->
+        <div class="flex items-center space-x-2">
+          <select id="calYearSelect" onchange="onCalendarSelectChange()" class="bg-white border border-slate-300 text-slate-900 font-black text-xs sm:text-sm rounded-xl px-2.5 py-1 focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer">
+          </select>
+          <select id="calMonthSelect" onchange="onCalendarSelectChange()" class="bg-white border border-slate-300 text-slate-900 font-black text-xs sm:text-sm rounded-xl px-2 py-1 focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer">
+          </select>
+        </div>
+
+        <button onclick="changeCalendarMonth(1)" class="px-2.5 py-1.5 rounded-xl border border-slate-300 hover:bg-white text-slate-700 hover:text-indigo-600 font-bold text-xs transition flex items-center space-x-1 cursor-pointer">
+          <span class="hidden sm:inline">다음달</span>
+          <i class="fa-solid fa-chevron-right"></i>
+        </button>
+      </div>
+
+      <!-- Calendar Body -->
+      <div class="p-4 sm:p-5">
+        <!-- Weekday Headers -->
+        <div class="grid grid-cols-7 gap-1 text-center font-black text-xs pb-2 mb-1.5 border-b border-slate-100">
+          <div class="text-rose-500">일</div>
+          <div class="text-slate-600">월</div>
+          <div class="text-slate-600">화</div>
+          <div class="text-slate-600">수</div>
+          <div class="text-slate-600">목</div>
+          <div class="text-slate-600">금</div>
+          <div class="text-blue-500">토</div>
+        </div>
+
+        <!-- Days Grid -->
+        <div id="calendarDaysGrid" class="grid grid-cols-7 gap-1 sm:gap-1.5 text-center min-h-[240px]">
+          <!-- JS 렌더링 -->
+        </div>
+
+        <!-- Legend / Footer -->
+        <div class="mt-4 pt-3 border-t border-slate-200 flex flex-wrap items-center justify-between text-xs text-slate-500 gap-2">
+          <div class="flex items-center space-x-2">
+            <span class="inline-block w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
+            <span class="font-bold text-slate-700">주보 발행일 (클릭 시 이동)</span>
+          </div>
+          <button onclick="resetDateFilter()" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer">
+            날짜 필터 해제
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
 
   <!-- Bulletin Detail Modal (모바일 여백 과다 해소: p-2 sm:p-6) -->
   <div id="detailModal" class="fixed inset-0 z-50 hidden overflow-y-auto bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-2 sm:p-6">
@@ -470,9 +552,16 @@
     let currentQuery = '';
     let currentSearchType = 'all';
     let currentYear = 'all';
+    let currentDateFilter = null;
     let currentPage = 1;
     let currentBulletinId = null;
     let isFinanceVisible = false;
+
+    // 달력 데이터 캐시 및 상태
+    let calendarDatesMap = {};
+    let calendarDatesLoaded = false;
+    let calDisplayYear = 2026;
+    let calDisplayMonth = 11;
 
     function setSearchType(type) {
       currentSearchType = type;
@@ -507,6 +596,7 @@
 
     function setYear(yr) {
       currentYear = yr;
+      currentDateFilter = null; // 연도 선택 시 특정 날짜 필터 해제
       currentPage = 1;
 
       const buttons = document.querySelectorAll('#yearButtons button');
@@ -637,13 +727,26 @@
       list.innerHTML = '<div class="py-16 text-center text-slate-500 font-bold text-lg"><i class="fa-solid fa-circle-notch fa-spin text-3xl mb-3 text-indigo-600 block"></i>주보 목록을 불러오는 중...</div>';
 
       try {
-        const url = `/api/bulletins?page=${currentPage}&q=${encodeURIComponent(currentQuery)}&type=${currentSearchType}&year=${currentYear}`;
+        const url = `/api/bulletins?page=${currentPage}&q=${encodeURIComponent(currentQuery)}&type=${currentSearchType}&year=${currentYear}&date=${encodeURIComponent(currentDateFilter || '')}`;
         const res = await fetch(url);
         const data = await res.json();
 
         document.getElementById('totalCount').innerText = data.total;
         
-        if (currentQuery || currentYear !== 'all') {
+        // 달력 버튼 상태 표시 동기화
+        const calBtnText = document.getElementById('calendarBtnText');
+        const calBtn = document.getElementById('calendarBtn');
+        if (calBtnText && calBtn) {
+          if (currentDateFilter) {
+            calBtnText.innerText = `선택: ${currentDateFilter}`;
+            calBtn.className = 'px-3.5 py-1.5 rounded-xl font-black bg-indigo-950 border-2 border-amber-300 text-amber-300 shadow-md transition flex items-center space-x-1.5 cursor-pointer';
+          } else {
+            calBtnText.innerText = '달력으로 날짜 찾기';
+            calBtn.className = 'px-3.5 py-1.5 rounded-xl font-black bg-gradient-to-r from-violet-600 via-indigo-600 to-indigo-700 hover:from-violet-700 hover:to-indigo-800 text-white shadow-xs transition flex items-center space-x-1.5 cursor-pointer';
+          }
+        }
+
+        if (currentQuery || currentYear !== 'all' || currentDateFilter) {
           const typeNames = { 
             'all': '', 
             'sermon': ' [말씀제목]',
@@ -653,12 +756,13 @@
             'announcement': ' [교회소식]', 
             'offering': ' [헌금명단]' 
           };
-          const yearBadge = currentYear !== 'all' ? ` [${currentYear}년]` : '';
+          const yearBadge = (currentYear !== 'all' && !currentDateFilter) ? ` [${currentYear}년]` : '';
+          const dateBadge = currentDateFilter ? ` [📅 ${currentDateFilter}]` : '';
           const queryText = currentQuery ? `"${currentQuery}"` : '';
           
           document.getElementById('activeQueryBadge').classList.remove('hidden');
           document.getElementById('activeQueryBadge').classList.add('flex');
-          document.getElementById('activeQueryText').innerText = `${queryText}${typeNames[currentSearchType] || ''}${yearBadge}`;
+          document.getElementById('activeQueryText').innerText = `${queryText}${typeNames[currentSearchType] || ''}${yearBadge}${dateBadge}`;
         } else {
           document.getElementById('activeQueryBadge').classList.add('hidden');
           document.getElementById('activeQueryBadge').classList.remove('flex');
@@ -1474,6 +1578,7 @@
       currentSearchType = 'all';
       setSearchType('all');
       currentYear = 'all';
+      currentDateFilter = null; // 날짜 필터 해제
       const buttons = document.querySelectorAll('#yearButtons button');
       buttons.forEach(btn => {
         btn.className = 'px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition';
@@ -1484,6 +1589,191 @@
       }
       currentPage = 1;
       loadBulletins();
+    }
+
+    // ==========================================
+    // 달력(Calendar) 관련 함수
+    // ==========================================
+    async function loadCalendarDates() {
+      if (calendarDatesLoaded) return;
+      try {
+        const res = await fetch('/api/bulletins/calendar');
+        if (res.ok) {
+          const list = await res.json();
+          calendarDatesMap = {};
+          list.forEach(item => {
+            if (item.date) {
+              const clean = item.date.replace(/\./g, '-').trim();
+              calendarDatesMap[clean] = item;
+            }
+          });
+          calendarDatesLoaded = true;
+        }
+      } catch (e) {
+        console.error('달력 날짜 로드 실패:', e);
+      }
+    }
+
+    async function openCalendarModal() {
+      await loadCalendarDates();
+
+      // 기준 연도와 월 설정
+      if (currentDateFilter) {
+        const parts = currentDateFilter.split('-');
+        if (parts.length >= 2) {
+          calDisplayYear = parseInt(parts[0]);
+          calDisplayMonth = parseInt(parts[1]);
+        }
+      } else {
+        const dates = Object.keys(calendarDatesMap).sort().reverse();
+        if (dates.length > 0) {
+          const parts = dates[0].split('-');
+          calDisplayYear = parseInt(parts[0]);
+          calDisplayMonth = parseInt(parts[1]);
+        } else {
+          const now = new Date();
+          calDisplayYear = now.getFullYear();
+          calDisplayMonth = now.getMonth() + 1;
+        }
+      }
+
+      initCalendarSelectors();
+      renderCalendarDays();
+      document.getElementById('calendarModal').classList.remove('hidden');
+    }
+
+    function closeCalendarModal() {
+      document.getElementById('calendarModal').classList.add('hidden');
+    }
+
+    function initCalendarSelectors() {
+      const yearSel = document.getElementById('calYearSelect');
+      const monthSel = document.getElementById('calMonthSelect');
+      if (!yearSel || !monthSel) return;
+      
+      yearSel.innerHTML = '';
+      for (let y = 2026; y >= 2015; y--) {
+        const opt = document.createElement('option');
+        opt.value = y;
+        opt.innerText = `${y}년`;
+        if (y === calDisplayYear) opt.selected = true;
+        yearSel.appendChild(opt);
+      }
+
+      monthSel.innerHTML = '';
+      for (let m = 1; m <= 12; m++) {
+        const opt = document.createElement('option');
+        opt.value = m;
+        opt.innerText = `${m}월`;
+        if (m === calDisplayMonth) opt.selected = true;
+        monthSel.appendChild(opt);
+      }
+    }
+
+    function onCalendarSelectChange() {
+      calDisplayYear = parseInt(document.getElementById('calYearSelect').value);
+      calDisplayMonth = parseInt(document.getElementById('calMonthSelect').value);
+      renderCalendarDays();
+    }
+
+    function changeCalendarMonth(delta) {
+      calDisplayMonth += delta;
+      if (calDisplayMonth < 1) {
+        calDisplayMonth = 12;
+        calDisplayYear--;
+      } else if (calDisplayMonth > 12) {
+        calDisplayMonth = 1;
+        calDisplayYear++;
+      }
+      
+      const yearSel = document.getElementById('calYearSelect');
+      const monthSel = document.getElementById('calMonthSelect');
+      if (yearSel) yearSel.value = calDisplayYear;
+      if (monthSel) monthSel.value = calDisplayMonth;
+      
+      renderCalendarDays();
+    }
+
+    function renderCalendarDays() {
+      const grid = document.getElementById('calendarDaysGrid');
+      if (!grid) return;
+
+      const firstDayIndex = new Date(calDisplayYear, calDisplayMonth - 1, 1).getDay();
+      const daysInMonth = new Date(calDisplayYear, calDisplayMonth, 0).getDate();
+
+      let html = '';
+
+      for (let i = 0; i < firstDayIndex; i++) {
+        html += `<div class="p-1 min-h-[46px] rounded-xl bg-slate-50/40"></div>`;
+      }
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = `${calDisplayYear}-${String(calDisplayMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const info = calendarDatesMap[dateStr];
+        const hasBulletin = !!info;
+        const isSelected = (currentDateFilter === dateStr);
+        const dayOfWeek = (firstDayIndex + d - 1) % 7;
+
+        if (hasBulletin) {
+          const sermonPreview = info.sermon_title ? `설교: ${info.sermon_title}` : '주보 등록됨';
+          const bgClass = isSelected 
+            ? 'bg-indigo-600 text-white ring-3 ring-amber-300 shadow-md font-black' 
+            : 'bg-indigo-50 border border-indigo-200 hover:border-indigo-500 hover:bg-indigo-100/90 text-indigo-950 font-black shadow-2xs';
+          
+          const numBadgeClass = isSelected
+            ? 'bg-amber-300 text-slate-900 font-extrabold'
+            : 'bg-indigo-600 text-white font-extrabold';
+
+          html += `
+            <button 
+              type="button"
+              onclick="selectCalendarDate('${dateStr}')" 
+              title="${dateStr} (#${info.post_num}) - ${sermonPreview}"
+              class="${bgClass} min-h-[48px] rounded-xl p-1 flex flex-col items-center justify-between transition-all transform hover:scale-105 cursor-pointer relative group">
+              <span class="text-xs sm:text-sm font-black leading-tight">${d}</span>
+              <span class="text-[9px] sm:text-[10px] px-1 py-0.2 rounded-md ${numBadgeClass} leading-tight truncate max-w-full">
+                #${info.post_num}
+              </span>
+            </button>
+          `;
+        } else {
+          let textCol = 'text-slate-400';
+          if (dayOfWeek === 0) textCol = 'text-rose-400 font-bold';
+          else if (dayOfWeek === 6) textCol = 'text-blue-400';
+
+          html += `
+            <div class="min-h-[48px] rounded-xl p-1 flex flex-col items-center justify-start text-xs ${textCol}">
+              <span>${d}</span>
+            </div>
+          `;
+        }
+      }
+
+      grid.innerHTML = html;
+    }
+
+    function selectCalendarDate(dateStr) {
+      currentDateFilter = dateStr;
+      currentYear = 'all';
+      const buttons = document.querySelectorAll('#yearButtons button');
+      buttons.forEach(btn => {
+        btn.className = 'px-2.5 py-1 rounded-lg font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition';
+      });
+      const allBtn = document.getElementById('year_all');
+      if (allBtn) allBtn.className = 'px-2.5 py-1 rounded-lg font-bold bg-indigo-600 text-white transition shadow-xs';
+
+      currentPage = 1;
+      closeCalendarModal();
+      loadBulletins();
+      showToast(`📅 ${dateStr} 주보를 검색했습니다.`);
+    }
+
+    function resetDateFilter() {
+      currentDateFilter = null;
+      currentPage = 1;
+      closeCalendarModal();
+      loadBulletins();
+      showToast('날짜 필터가 해제되었습니다.');
     }
 
     async function openDetailModal(id) {

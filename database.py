@@ -342,14 +342,17 @@ def get_bulletin_by_id(b_id: int) -> Optional[Dict[str, Any]]:
         return dict(row)
     return None
 
-def list_bulletins(query: Optional[str] = None, search_type: str = "all", year: Optional[str] = None, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
+def list_bulletins(query: Optional[str] = None, search_type: str = "all", year: Optional[str] = None, date: Optional[str] = None, limit: int = 50, offset: int = 0) -> List[Dict[str, Any]]:
     conn = get_connection()
     cursor = conn.cursor()
     
     conditions = []
     params = []
     
-    if year and year != "all":
+    if date:
+        conditions.append("date LIKE ?")
+        params.append(f"{date}%")
+    elif year and year != "all":
         conditions.append("date LIKE ?")
         params.append(f"{year}%")
         
@@ -389,14 +392,17 @@ def list_bulletins(query: Optional[str] = None, search_type: str = "all", year: 
     conn.close()
     return [dict(r) for r in rows]
 
-def count_bulletins(query: Optional[str] = None, search_type: str = "all", year: Optional[str] = None) -> int:
+def count_bulletins(query: Optional[str] = None, search_type: str = "all", year: Optional[str] = None, date: Optional[str] = None) -> int:
     conn = get_connection()
     cursor = conn.cursor()
     
     conditions = []
     params = []
     
-    if year and year != "all":
+    if date:
+        conditions.append("date LIKE ?")
+        params.append(f"{date}%")
+    elif year and year != "all":
         conditions.append("date LIKE ?")
         params.append(f"{year}%")
         
@@ -444,7 +450,7 @@ def get_available_years() -> List[str]:
     years = sorted(list(set([d.split('-')[0] for d in dates if len(d) >= 4 and d[:4].isdigit()])), reverse=True)
     return years
 
-def get_finance_summary(query: Optional[str] = None, search_type: str = "all", year: Optional[str] = None) -> Dict[str, Any]:
+def get_finance_summary(query: Optional[str] = None, search_type: str = "all", year: Optional[str] = None, date: Optional[str] = None) -> Dict[str, Any]:
     """
     선택된 연도(또는 전체) 및 검색 조건에 해당하는 모든 주보의 누적 재정 합계를 집계합니다.
     """
@@ -454,7 +460,10 @@ def get_finance_summary(query: Optional[str] = None, search_type: str = "all", y
     conditions = ["finances IS NOT NULL", "finances != ''"]
     params = []
     
-    if year and year != "all":
+    if date:
+        conditions.append("date LIKE ?")
+        params.append(f"{date}%")
+    elif year and year != "all":
         conditions.append("date LIKE ?")
         params.append(f"{year}%")
         
@@ -532,6 +541,22 @@ def get_finance_summary(query: Optional[str] = None, search_type: str = "all", y
         "bulletin_count": count,
         "year": year or "all"
     }
+
+def get_bulletin_calendar_dates() -> List[Dict[str, Any]]:
+    """
+    달력 UI에서 주보가 있는 날짜를 표시하기 위해 날짜, 주보번호, 설교제목 목록을 반환합니다.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT id, post_num, date, sermon_title 
+        FROM bulletins 
+        WHERE date IS NOT NULL AND date != '' 
+        ORDER BY date DESC
+    """)
+    rows = cursor.fetchall()
+    conn.close()
+    return [{"id": r["id"], "post_num": r["post_num"], "date": r["date"], "sermon_title": r["sermon_title"] or ""} for r in rows]
 
 if __name__ == "__main__":
     init_db()

@@ -97,14 +97,20 @@ def index(request: Request, key: Optional[str] = None):
         response.set_cookie(key="myks_auth", value="myks", max_age=31536000, httponly=False, samesite="lax")
     return response
 
+@app.get("/api/bulletins/calendar")
+def api_get_calendar_dates(request: Request, key: Optional[str] = None):
+    if not check_auth(request, key):
+        raise HTTPException(status_code=403, detail="접근 권한이 없습니다.")
+    return database.get_bulletin_calendar_dates()
+
 @app.get("/api/bulletins")
-def api_list_bulletins(request: Request, q: Optional[str] = None, type: str = "all", year: Optional[str] = None, page: int = 1, page_size: int = 12, key: Optional[str] = None):
+def api_list_bulletins(request: Request, q: Optional[str] = None, type: str = "all", year: Optional[str] = None, date: Optional[str] = None, page: int = 1, page_size: int = 12, key: Optional[str] = None):
     if not check_auth(request, key):
         raise HTTPException(status_code=403, detail="접근 권한이 없습니다.")
     offset = (page - 1) * page_size
-    items = database.list_bulletins(query=q, search_type=type, year=year, limit=page_size, offset=offset)
-    total_count = database.count_bulletins(query=q, search_type=type, year=year)
-    finance_summary = database.get_finance_summary(query=q, search_type=type, year=year)
+    items = database.list_bulletins(query=q, search_type=type, year=year, date=date, limit=page_size, offset=offset)
+    total_count = database.count_bulletins(query=q, search_type=type, year=year, date=date)
+    finance_summary = database.get_finance_summary(query=q, search_type=type, year=year, date=date)
     
     # JSON 직렬화 정제
     results = []
