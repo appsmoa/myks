@@ -14,6 +14,7 @@ import crawler
 import batch_analyze
 import github_sync
 import youtube_matcher
+import prayer_time_analyzer
 
 load_dotenv()
 
@@ -279,6 +280,11 @@ def api_analyze_single(b_id: int):
         
     target_date = analysis.get("date") or item.get("date") or ""
     yt_links = youtube_matcher.get_youtube_links_for_bulletin(target_date)
+    if yt_links:
+        try:
+            yt_links = prayer_time_analyzer.enrich_youtube_urls_with_prayer_timestamps(yt_links, analysis.get("servants") or {})
+        except Exception as e:
+            print(f"[Server] Prayer timestamp enrichment failed: {e}")
 
     update_data = {
         "id": b_id,
