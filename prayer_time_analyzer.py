@@ -100,71 +100,126 @@ def extract_prayer_timestamp_with_gemini(youtube_url: str, prayer_name: str, wor
     clean_name = prayer_name.strip()
     worship_hint = f" ({worship_type} 예배)" if worship_type else ""
 
-    prompt = f"""
+    # 1차 정밀 탐색 프롬프트
+    prompt_primary = f"""
 당신은 교회 예배 영상 정밀 분석 전문가입니다.
 제공된 유튜브 영상은 금성교회{worship_hint} 실시간 스트리밍 녹화 영상입니다.
 이 예배의 대표기도자는 [{clean_name}]입니다.
 
 영상에서 예배 전 찬양이 끝나고 강단에 나와 대표기도([{clean_name}])가 시작되는 정확한 시점(타임스탬프)을 찾아주세요.
 화면 하단에 [기도 | {clean_name}] 자막이 나타나거나 기도자가 마이크를 잡고 기도를 시작하는 순간(초 단위)입니다.
-일반적으로 찬양 후 15분~25분 사이에 위치합니다.
+일반적으로 찬양 후 15분~28분 사이에 위치합니다.
 
 반드시 다음 JSON 형식으로만 응답해 주세요:
 {{
   "prayer_name": "{clean_name}",
   "timestamp_str": "MM:SS",
-  "total_seconds": 1123,
+  "total_seconds": 1363,
   "confidence": "high/medium/low",
   "evidence": "기도 시작 증거 설명"
 }}
 """
 
-    payload = {
-        "contents": [{
-            "parts": [
-                {
-                    "fileData": {
-                        "mimeType": "video/*",
-                        "fileUri": clean_video_url
-                    }
-                },
-                {
-                    "text": prompt
-                }
-            ]
-        }],
-        "generationConfig": {
-            "response_mime_type": "application/json"
-        }
-    }
+    # 2차 유연 탐색 프롬프트 (이름 자막 매칭이 애매할 때 회중 대표기도 식별)
+    prompt_secondary = f"""
+제공된 유튜브 영상({clean_video_url})은 금성교회{worship_hint} 예배 실시간 녹화 영상입니다.
+영상에서 시작 찬양팀 찬양이 끝나고, 인도자의 멘트 후 대표기도자가 강단에 올라와 마이크를 잡고 회중을 대표하여 기도를 시작하는 시점(MM:SS)을 찾아주세요.
+보통 15분~28분 사이에 위치합니다.
 
-    # 대용량 비디오 스캔에 가장 안정적이고 빠른 모델 순서
-    models = ["gemini-3.1-flash-lite", "gemini-3-flash-preview"]
+JSON으로만 응답해 주세요:
+{{
+  "prayer_name": "{clean_name}",
+  "timestamp_str": "MM:SS",
+  "total_seconds": 1363
+}}
+"""
 
-    for key_idx, key in enumerate(keys):
-        for model in models:
-            api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+    def parse_seconds_flexible(data: dict) -> Optional[int]:
+        if not isinstance(data, dict):
+            return None
+        # 1. total_seconds 필드 검사
+        secs = data.get("total_seconds")
+        if secs is not None:
             try:
-                print(f"[PrayerAnalyzer] 영상 분석 요청: {clean_name} ({clean_video_url}, {model}, Key #{key_idx + 1})...")
-                # 비디오 분석을 위해 충분한 타임아웃(65초) 부여
-                res = requests.post(api_url, json=payload, headers={"Content-Type": "application/json"}, timeout=65)
-                if res.status_code == 200:
-                    res_data = res.json()
-                    parts = res_data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
-                    if parts and "text" in parts[0]:
-                        parsed = json.loads(parts[0]["text"])
-                        secs = parsed.get("total_seconds")
-                        if secs and isinstance(secs, (int, float)) and secs > 60:
-                            print(f"[PrayerAnalyzer] 성공! [{clean_name}] 기도 시작 시간: {secs}초 ({parsed.get('timestamp_str')})")
-                            return int(secs)
-                elif res.status_code == 503:
-                    time.sleep(1)
-                    continue
-                else:
-                    print(f"[PrayerAnalyzer] API 응답 {res.status_code}: {res.text[:120]}")
-            except Exception as e:
-                print(f"[PrayerAnalyzer Error] {e}")
-            time.sleep(1)
+                s_clean = re.sub(r'[^\d.]', '', str(secs))
+                if s_clean:
+                    v = int(float(s_clean))
+                    if v > 60:
+                        return v
+            except:
+                pass
+        # 2. timestamp_str (MM:SS, HH:MM:SS, XX분 YY초) 파싱
+        ts = str(data.get("timestamp_str") or "")
+        if ts:
+            m = re.search(r'(?:(\d{1,2}):)?(\d{1,2}):(\d{2})', ts)
+            if m:
+                h = int(m.group(1)) if m.group(1) else 0
+                m_v = int(m.group(2))
+                s_v = int(m.group(3))
+                tot = h * 3600 + m_v * 60 + s_v
+                if tot > 60:
+                    return tot
+            m_kor = re.search(r'(?:(\d+)시간\s*)?(?:(\d+)분\s*)?(\d+)초', ts)
+            if m_kor:
+                h = int(m_kor.group(1)) if m_kor.group(1) else 0
+                m_v = int(m_kor.group(2)) if m_kor.group(2) else 0
+                s_v = int(m_kor.group(3)) if m_kor.group(3) else 0
+                tot = h * 3600 + m_v * 60 + s_v
+                if tot > 60:
+                    return tot
+        return None
+
+    models = ["gemini-3.1-flash-lite", "gemini-3-flash-preview"]
+    num_keys = len(keys)
+    start_key_idx = 0
+    if worship_type == "9시": start_key_idx = 1
+    elif worship_type == "수요": start_key_idx = 2
+    ordered_keys = [keys[(start_key_idx + i) % num_keys] for i in range(num_keys)]
+
+    for attempt, prompt in enumerate([prompt_primary, prompt_secondary], 1):
+        payload = {
+            "contents": [{
+                "parts": [
+                    {
+                        "fileData": {
+                            "mimeType": "video/*",
+                            "fileUri": clean_video_url
+                        }
+                    },
+                    {
+                        "text": prompt
+                    }
+                ]
+            }],
+            "generationConfig": {
+                "response_mime_type": "application/json"
+            }
+        }
+
+        for key_idx, key in enumerate(ordered_keys):
+            for model in models:
+                api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+                try:
+                    print(f"[PrayerAnalyzer] 영상 분석 요청({attempt}차): {clean_name} ({clean_video_url}, {model}, Key #{key_idx + 1})...")
+                    res = requests.post(api_url, json=payload, headers={"Content-Type": "application/json"}, timeout=65)
+                    if res.status_code == 200:
+                        res_data = res.json()
+                        parts = res_data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
+                        if parts and "text" in parts[0]:
+                            parsed = json.loads(parts[0]["text"])
+                            secs = parse_seconds_flexible(parsed)
+                            if secs:
+                                print(f"[PrayerAnalyzer] 성공! [{clean_name}] 기도 시작 시간: {secs}초 ({secs//60:02d}:{secs%60:02d})")
+                                return secs
+                    elif res.status_code in (429, 503):
+                        print(f"[PrayerAnalyzer] 일시적 부하 ({res.status_code}), 다음 키로 교체 재시도...")
+                        time.sleep(2)
+                        continue
+                    else:
+                        print(f"[PrayerAnalyzer] API 응답 {res.status_code}: {res.text[:100]}")
+                except Exception as e:
+                    print(f"[PrayerAnalyzer Error] {e}")
+                time.sleep(1)
 
     print(f"[PrayerAnalyzer] [{clean_name}] 타임스탬프 추출 실패 (기본 링크 유지)")
     return None
@@ -184,7 +239,8 @@ def enrich_youtube_urls_with_prayer_timestamps(yt_links: dict, servants: dict) -
 
     updated = dict(yt_links)
     tasks = []
-    for w_type in ["11시", "9시", "수요"]:
+    worship_priority = ["11시", "9시", "수요"]
+    for w_type in worship_priority:
         url = updated.get(w_type)
         if not url:
             continue
@@ -203,7 +259,7 @@ def enrich_youtube_urls_with_prayer_timestamps(yt_links: dict, servants: dict) -
         secs = extract_prayer_timestamp_with_gemini(url, p_name, w_type)
         return w_type, url, secs
 
-    # 9시, 11시, 수요 영상을 동시에 병렬 분석하여 소요 시간을 1/3로 단축! (3분 -> 40~50초)
+    # 11시, 9시, 수요 영상을 서로 다른 키로 동시 병렬 분석!
     with ThreadPoolExecutor(max_workers=min(len(tasks), 3)) as executor:
         results = executor.map(analyze_one, tasks)
         for w_type, url, secs in results:
