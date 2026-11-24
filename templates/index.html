@@ -1921,48 +1921,87 @@
         }
         if (servantsData && typeof servantsData === 'object' && Object.keys(servantsData).length > 0) {
           servantsDiv.innerHTML = Object.entries(servantsData).map(([worship, info]) => {
-            let infoDisplay = '-';
-            if (info && typeof info === 'object') {
-              infoDisplay = Object.entries(info).map(([k, v]) => `${k}: ${v ?? '-'}`).join(' | ');
-            } else if (info !== null && info !== undefined) {
-              infoDisplay = String(info);
-            }
-
-            let ytLink = null;
-            if (worship.includes('9시') || worship.includes('1부')) ytLink = modalYtUrls['9시'];
-            else if (worship.includes('11시') || worship.includes('2부')) ytLink = modalYtUrls['11시'];
-            else if (worship.includes('수요')) ytLink = modalYtUrls['수요'];
-
+            let infoDisplay = '';
             let ytBtn = '';
-            if (ytLink) {
-              const tMatch = ytLink.match(/[?&]t=(\d+)s?/);
-              const isAnalyzing = window._analyzingBulletins && window._analyzingBulletins.has(currentBulletinId);
 
-              if (tMatch) {
-                const totalSec = parseInt(tMatch[1]);
-                const min = Math.floor(totalSec / 60);
-                const sec = totalSec % 60;
-                const modalTimeLabel = `기도 영상 보기 (${min}:${sec < 10 ? '0' : ''}${sec}~)`;
-                ytBtn = `
-                  <a href="${ytLink}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-600 border border-rose-200 hover:border-rose-600 text-rose-600 hover:text-white text-xs font-black transition shadow-2xs group/yt">
-                    <i class="fa-brands fa-youtube text-sm mr-1.5 text-rose-600 group-hover/yt:text-white"></i>
-                    <span>${modalTimeLabel}</span>
-                  </a>
-                `;
-              } else if (isAnalyzing) {
-                ytBtn = `
-                  <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-black shadow-2xs animate-pulse">
-                    <i class="fa-solid fa-circle-notch fa-spin text-indigo-600 mr-1.5"></i>
-                    <span>AI 기도 시간 분석 중...</span>
-                  </span>
-                `;
+            const formatVal = (v) => {
+              if (v === null || v === undefined) return '-';
+              if (Array.isArray(v)) return v.join(', ');
+              if (typeof v === 'object') {
+                return Object.entries(v).map(([k, subV]) => `${k}: ${Array.isArray(subV) ? subV.join(', ') : subV}`).join(' | ');
+              }
+              return String(v);
+            };
+
+            // 대표기도가 딕셔너리인 경우 (9시예배, 11시예배, 수요 각각 분리 표출)
+            if (worship.includes('대표기도') && info && typeof info === 'object') {
+              infoDisplay = Object.entries(info).map(([subK, subV]) => {
+                let subYt = null;
+                if (subK.includes('9시') || subK.includes('1부')) subYt = modalYtUrls['9시'];
+                else if (subK.includes('11시') || subK.includes('2부')) subYt = modalYtUrls['11시'];
+                else if (subK.includes('수요')) subYt = modalYtUrls['수요'];
+
+                let subBtn = '';
+                if (subYt) {
+                  const tMatch = subYt.match(/[?&]t=(\d+)s?/);
+                  let timeLabel = '';
+                  if (tMatch) {
+                    const totalSec = parseInt(tMatch[1]);
+                    const min = Math.floor(totalSec / 60);
+                    const sec = totalSec % 60;
+                    timeLabel = ` (${min}:${sec < 10 ? '0' : ''}${sec}~)`;
+                  }
+                  subBtn = `
+                    <a href="${subYt}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center ml-2 px-2.5 py-0.5 rounded-lg bg-rose-50 hover:bg-rose-600 border border-rose-200 hover:border-rose-600 text-rose-600 hover:text-white text-xs font-black transition shadow-2xs group/yt">
+                      <i class="fa-brands fa-youtube text-xs mr-1 text-rose-600 group-hover/yt:text-white"></i>
+                      <span>기도영상${timeLabel}</span>
+                    </a>
+                  `;
+                }
+                return `<div class="py-1 flex items-center justify-between border-b border-slate-50 last:border-0"><span class="font-bold text-slate-800">${subK}: <span class="font-black text-slate-950">${formatVal(subV)}</span></span>${subBtn}</div>`;
+              }).join('');
+            } else {
+              if (info && typeof info === 'object') {
+                infoDisplay = Object.entries(info).map(([k, v]) => `${k}: ${formatVal(v)}`).join(' | ');
               } else {
-                ytBtn = `
-                  <a href="${ytLink}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-600 border border-rose-200 hover:border-rose-600 text-rose-600 hover:text-white text-xs font-black transition shadow-2xs group/yt">
-                    <i class="fa-brands fa-youtube text-sm mr-1.5 text-rose-600 group-hover/yt:text-white"></i>
-                    <span>실시간 예배 영상 보기</span>
-                  </a>
-                `;
+                infoDisplay = formatVal(info);
+              }
+
+              let ytLink = null;
+              if (worship.includes('9시') || worship.includes('1부')) ytLink = modalYtUrls['9시'];
+              else if (worship.includes('11시') || worship.includes('2부')) ytLink = modalYtUrls['11시'];
+              else if (worship.includes('수요')) ytLink = modalYtUrls['수요'];
+
+              if (ytLink) {
+                const tMatch = ytLink.match(/[?&]t=(\d+)s?/);
+                const isAnalyzing = window._analyzingBulletins && window._analyzingBulletins.has(currentBulletinId);
+
+                if (tMatch) {
+                  const totalSec = parseInt(tMatch[1]);
+                  const min = Math.floor(totalSec / 60);
+                  const sec = totalSec % 60;
+                  const modalTimeLabel = `기도 영상 보기 (${min}:${sec < 10 ? '0' : ''}${sec}~)`;
+                  ytBtn = `
+                    <a href="${ytLink}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-600 border border-rose-200 hover:border-rose-600 text-rose-600 hover:text-white text-xs font-black transition shadow-2xs group/yt">
+                      <i class="fa-brands fa-youtube text-sm mr-1.5 text-rose-600 group-hover/yt:text-white"></i>
+                      <span>${modalTimeLabel}</span>
+                    </a>
+                  `;
+                } else if (isAnalyzing) {
+                  ytBtn = `
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-black shadow-2xs animate-pulse">
+                      <i class="fa-solid fa-circle-notch fa-spin text-indigo-600 mr-1.5"></i>
+                      <span>AI 기도 시간 분석 중...</span>
+                    </span>
+                  `;
+                } else {
+                  ytBtn = `
+                    <a href="${ytLink}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-600 border border-rose-200 hover:border-rose-600 text-rose-600 hover:text-white text-xs font-black transition shadow-2xs group/yt">
+                      <i class="fa-brands fa-youtube text-sm mr-1.5 text-rose-600 group-hover/yt:text-white"></i>
+                      <span>실시간 예배 영상 보기</span>
+                    </a>
+                  `;
+                }
               }
             }
 
@@ -1972,7 +2011,7 @@
                   <span class="font-black text-slate-900 text-sm sm:text-base">${worship}</span>
                   ${ytBtn}
                 </div>
-                <span class="font-semibold text-slate-700 text-xs sm:text-sm">${infoDisplay}</span>
+                <div class="text-xs sm:text-sm text-slate-700">${infoDisplay}</div>
               </div>
             `;
           }).join('');
