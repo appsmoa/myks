@@ -1516,11 +1516,11 @@
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2">
                   ${Object.entries(inc).filter(([k]) => !['총수입', 'total'].includes(k)).map(([k, v]) => {
-                    const numVal = typeof v === 'number' ? v : (typeof v === 'string' && !isNaN(v) ? Number(v) : v);
+                    const numVal = typeof v === 'number' ? v : (typeof v === 'string' && !isNaN(v) && v.trim() !== '' ? Number(v) : v);
                     return `
                       <div class="bg-emerald-50/70 px-3 py-2 rounded-xl flex justify-between items-center border border-emerald-200/60">
                         <span class="font-bold text-slate-800 text-xs sm:text-sm whitespace-nowrap">${k}</span>
-                        <span class="font-black text-emerald-800 text-xs sm:text-sm whitespace-nowrap tracking-tight">${typeof numVal === 'number' ? numVal.toLocaleString() + '원' : numVal}</span>
+                        <span class="font-black text-emerald-800 text-xs sm:text-sm whitespace-nowrap tracking-tight">${typeof numVal === 'number' ? numVal.toLocaleString() + '원' : (numVal ?? '-')}</span>
                       </div>
                     `;
                   }).join('')}
@@ -1539,11 +1539,11 @@
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2">
                   ${Object.entries(exp).filter(([k]) => !['총지출', 'total'].includes(k)).map(([k, v]) => {
-                    const numVal = typeof v === 'number' ? v : (typeof v === 'string' && !isNaN(v) ? Number(v) : v);
+                    const numVal = typeof v === 'number' ? v : (typeof v === 'string' && !isNaN(v) && v.trim() !== '' ? Number(v) : v);
                     return `
                       <div class="bg-slate-100 px-3 py-2 rounded-xl flex justify-between items-center border border-slate-200">
                         <span class="font-bold text-slate-800 text-xs sm:text-sm whitespace-nowrap">${k}</span>
-                        <span class="font-black text-slate-900 text-xs sm:text-sm whitespace-nowrap tracking-tight">${typeof numVal === 'number' ? numVal.toLocaleString() + '원' : numVal}</span>
+                        <span class="font-black text-slate-900 text-xs sm:text-sm whitespace-nowrap tracking-tight">${typeof numVal === 'number' ? numVal.toLocaleString() + '원' : (numVal ?? '-')}</span>
                       </div>
                     `;
                   }).join('')}
@@ -1568,11 +1568,11 @@
           offeringsDiv.innerHTML = Object.entries(offeringsData).map(([type, val]) => {
             let namesHtml = '';
             if (Array.isArray(val)) {
-              namesHtml = `<div class="flex flex-wrap gap-1.5 mt-2">${val.map(n => `<span class="bg-amber-100 text-amber-950 font-bold px-2.5 py-1 rounded-lg text-xs sm:text-sm border border-amber-300 shadow-xs">${typeof n === 'object' ? JSON.stringify(n) : n}</span>`).join('')}</div>`;
-            } else if (typeof val === 'object') {
-              namesHtml = `<div class="mt-2 space-y-1.5">${Object.entries(val).map(([k, v]) => `<div class="text-xs sm:text-sm"><span class="font-extrabold text-amber-900">${k}:</span> <span class="font-medium text-slate-800">${Array.isArray(v) ? v.join(', ') : v}</span></div>`).join('')}</div>`;
+              namesHtml = `<div class="flex flex-wrap gap-1.5 mt-2">${val.map(n => `<span class="bg-amber-100 text-amber-950 font-bold px-2.5 py-1 rounded-lg text-xs sm:text-sm border border-amber-300 shadow-xs">${typeof n === 'object' && n !== null ? JSON.stringify(n) : (n ?? '-')}</span>`).join('')}</div>`;
+            } else if (val && typeof val === 'object') {
+              namesHtml = `<div class="mt-2 space-y-1.5">${Object.entries(val).map(([k, v]) => `<div class="text-xs sm:text-sm"><span class="font-extrabold text-amber-900">${k}:</span> <span class="font-medium text-slate-800">${Array.isArray(v) ? v.join(', ') : (v ?? '-')}</span></div>`).join('')}</div>`;
             } else {
-              namesHtml = `<div class="text-sm font-medium text-slate-800 mt-1">${val}</div>`;
+              namesHtml = `<div class="text-sm font-medium text-slate-800 mt-1">${val ?? '-'}</div>`;
             }
             return `
               <div class="bg-white p-3.5 rounded-xl border border-amber-300 shadow-xs">
@@ -1585,15 +1585,27 @@
           offeringsDiv.innerHTML = '<p class="text-slate-500 font-medium italic">등록된 헌금 명단이 없습니다.</p>';
         }
 
-        // Servants
+        // Servants (예배별 대표기도 & 봉사자 - null 안전성 보장)
         const servantsDiv = document.getElementById('modalServants');
-        if (data.servants && typeof data.servants === 'object' && Object.keys(data.servants).length > 0) {
-          servantsDiv.innerHTML = Object.entries(data.servants).map(([worship, info]) => `
-            <div class="flex flex-col bg-white p-3 rounded-xl border border-slate-300">
-              <span class="font-black text-slate-900 text-sm sm:text-base mb-1">${worship}</span>
-              <span class="font-semibold text-slate-700 text-xs sm:text-sm">${typeof info === 'object' ? Object.entries(info).map(([k, v]) => `${k}: ${v}`).join(' | ') : info}</span>
-            </div>
-          `).join('');
+        let servantsData = data.servants;
+        if (typeof servantsData === 'string') {
+          try { servantsData = JSON.parse(servantsData); } catch(e) {}
+        }
+        if (servantsData && typeof servantsData === 'object' && Object.keys(servantsData).length > 0) {
+          servantsDiv.innerHTML = Object.entries(servantsData).map(([worship, info]) => {
+            let infoDisplay = '-';
+            if (info && typeof info === 'object') {
+              infoDisplay = Object.entries(info).map(([k, v]) => `${k}: ${v ?? '-'}`).join(' | ');
+            } else if (info !== null && info !== undefined) {
+              infoDisplay = String(info);
+            }
+            return `
+              <div class="flex flex-col bg-white p-3 rounded-xl border border-slate-300">
+                <span class="font-black text-slate-900 text-sm sm:text-base mb-1">${worship}</span>
+                <span class="font-semibold text-slate-700 text-xs sm:text-sm">${infoDisplay}</span>
+              </div>
+            `;
+          }).join('');
         } else {
           servantsDiv.innerHTML = '<p class="text-slate-500 font-medium italic">등록된 봉사자 정보가 없습니다.</p>';
         }
