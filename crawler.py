@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 import urllib.parse
 from dotenv import load_dotenv
 from database import init_db, save_bulletin, get_bulletin_by_id
+import youtube_matcher
 
 load_dotenv(override=True)
 
@@ -309,6 +310,15 @@ def process_single_post(post, use_vision=True):
         else:
             bulletin_record["status"] = "pending_analysis"
             
+    # 유튜브 스트림 예배 영상 링크 자동 매칭
+    try:
+        yt_links = youtube_matcher.get_youtube_links_for_bulletin(bulletin_record.get("date") or "")
+        if yt_links:
+            bulletin_record["youtube_urls"] = yt_links
+            print(f"      유튜브 영상 매칭: {list(yt_links.keys())}")
+    except Exception as e:
+        print(f"  [!] YouTube 매칭 오류: {e}")
+
     save_bulletin(bulletin_record)
     return bulletin_record
 

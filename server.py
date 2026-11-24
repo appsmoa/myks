@@ -1,5 +1,6 @@
 import os
 import json
+from datetime import datetime, timedelta
 from typing import Optional, List
 from fastapi import FastAPI, Request, Query, BackgroundTasks, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
@@ -12,6 +13,7 @@ import database
 import crawler
 import batch_analyze
 import github_sync
+import youtube_matcher
 
 load_dotenv()
 
@@ -125,6 +127,22 @@ def api_list_bulletins(request: Request, q: Optional[str] = None, type: str = "a
             record["finances"] = json.loads(record["finances"]) if record.get("finances") and record["finances"].startswith("{") else record.get("finances")
         except:
             pass
+
+        # 유튜브 링크 로드 및 최근 주보 자동 매칭
+        yt = {}
+        if record.get("youtube_urls"):
+            try:
+                yt = json.loads(record["youtube_urls"]) if isinstance(record["youtube_urls"], str) else record["youtube_urls"]
+            except:
+                yt = {}
+        if not yt and record.get("date"):
+            try:
+                b_dt = datetime.strptime(record["date"][:10], "%Y-%m-%d")
+                if (datetime.now() - b_dt).days < 90:
+                    yt = youtube_matcher.get_youtube_links_for_bulletin(record["date"])
+            except:
+                pass
+        record["youtube_urls"] = yt or {}
         results.append(record)
         
     return {
@@ -166,6 +184,19 @@ def api_get_bulletin(b_id: int, request: Request, key: Optional[str] = None):
         record["finances"] = json.loads(record["finances"]) if record.get("finances") and record["finances"].startswith("{") else record.get("finances")
     except:
         pass
+    # 유튜브 링크 로드 및 자동 매칭
+    yt = {}
+    if record.get("youtube_urls"):
+        try:
+            yt = json.loads(record["youtube_urls"]) if isinstance(record["youtube_urls"], str) else record["youtube_urls"]
+        except:
+            yt = {}
+    if not yt and record.get("date"):
+        try:
+            yt = youtube_matcher.get_youtube_links_for_bulletin(record["date"])
+        except:
+            pass
+    record["youtube_urls"] = yt or {}
     return record
 
 class SettingsPayload(BaseModel):
@@ -240,6 +271,9 @@ def api_analyze_single(b_id: int):
     if not analysis:
         raise HTTPException(status_code=500, detail="주보 데이터 추출에 실패했거나 API 키가 설정되지 않았습니다.")
         
+    target_date = analysis.get("date") or item.get("date") or ""
+    yt_links = youtube_matcher.get_youtube_links_for_bulletin(target_date)
+
     update_data = {
         "id": b_id,
         "post_num": item["post_num"],
@@ -249,7 +283,7 @@ def api_analyze_single(b_id: int):
         "view_count": item["view_count"],
         "detail_url": item["detail_url"],
         "image_urls": image_urls,
-        "date": analysis.get("date") or item.get("date"),
+        "date": target_date,
         "sermon_title": analysis.get("sermon_title"),
         "scripture": analysis.get("scripture"),
         "preacher": analysis.get("preacher"),
@@ -257,6 +291,7 @@ def api_analyze_single(b_id: int):
         "announcements": analysis.get("announcements"),
         "offerings": analysis.get("offerings"),
         "finances": analysis.get("finances"),
+        "youtube_urls": yt_links if yt_links else item.get("youtube_urls"),
         "raw_analysis_json": analysis,
         "status": "analyzed"
     }
