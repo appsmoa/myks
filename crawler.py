@@ -10,7 +10,7 @@ from PIL import Image
 from bs4 import BeautifulSoup
 import urllib.parse
 from dotenv import load_dotenv
-from database import init_db, save_bulletin, get_bulletin_by_id
+from database import init_db, save_bulletin, get_bulletin_by_id, get_gemini_api_keys
 import youtube_matcher
 import prayer_time_analyzer
 
@@ -110,7 +110,7 @@ def fetch_post_details(post_id, detail_url):
 
 def extract_bulletin_info_with_gemini(image_urls, fallback_date=""):
     load_dotenv(override=True)
-    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    api_key = get_gemini_api_keys()
     if not api_key:
         print("  [!] GEMINI_API_KEY가 설정되지 않아 Vision 분석을 건너뜁니다.")
         return None

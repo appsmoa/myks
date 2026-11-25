@@ -5,6 +5,7 @@ import time
 import re
 from typing import Optional, Dict
 from dotenv import load_dotenv
+from database import get_gemini_api_keys
 
 def extract_prayer_name_from_servants(servants: dict, worship_type: str) -> Optional[str]:
     """
@@ -132,7 +133,7 @@ def extract_worship_timestamps_with_gemini(
         return res_dict
 
     load_dotenv(override=True)
-    api_key_str = os.getenv("GEMINI_API_KEY", "").strip()
+    api_key_str = get_gemini_api_keys()
     if not api_key_str:
         print("[WorshipAnalyzer] GEMINI_API_KEY가 설정되지 않았습니다.")
         return res_dict

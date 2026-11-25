@@ -20,6 +20,10 @@ import prayer_time_analyzer
 
 load_dotenv()
 
+# Gemini API Key 고정값 자동 보장 (Render 배포 시에도 날아가지 않도록 DB/코드 기본값 자동 연동)
+if not os.getenv("GEMINI_API_KEY") or not os.getenv("GEMINI_API_KEY").strip():
+    os.environ["GEMINI_API_KEY"] = database.get_gemini_api_keys()
+
 app = FastAPI(title="금성교회 주보 아카이브 & 검색 시스템")
 
 @app.middleware("http")
@@ -236,7 +240,7 @@ class LoadKeysPayload(BaseModel):
 
 @app.get("/api/settings/key-summary")
 def api_get_key_summary():
-    raw_key = os.getenv("GEMINI_API_KEY", "").strip()
+    raw_key = database.get_gemini_api_keys()
     keys = [k.strip() for k in re.split(r"[\r\n,]+", raw_key) if k.strip()]
     
     masked_keys = []
@@ -247,7 +251,7 @@ def api_get_key_summary():
             preview = k[:6] + "..." + k[-4:]
         masked_keys.append({"index": idx, "preview": preview})
         
-    raw_gh = os.getenv("GITHUB_TOKEN", "").strip()
+    raw_gh = os.getenv("GITHUB_TOKEN", "").strip() or database.get_app_setting("GITHUB_TOKEN", "")
     gh_preview = ""
     if raw_gh:
         gh_preview = raw_gh[:6] + "..." + raw_gh[-4:] if len(raw_gh) > 10 else "ghp_***"
@@ -265,11 +269,11 @@ def api_load_keys(payload: LoadKeysPayload):
     if payload.password.strip() != "4123":
         raise HTTPException(status_code=403, detail="관리자 비밀번호가 올바르지 않습니다.")
         
-    raw_key = os.getenv("GEMINI_API_KEY", "").strip()
+    raw_key = database.get_gemini_api_keys()
     keys = [k.strip() for k in re.split(r"[\r\n,]+", raw_key) if k.strip()]
     formatted_keys = ",\n".join(keys)
     
-    raw_gh = os.getenv("GITHUB_TOKEN", "").strip()
+    raw_gh = os.getenv("GITHUB_TOKEN", "").strip() or database.get_app_setting("GITHUB_TOKEN", "")
     
     return {
         "status": "ok",
@@ -291,6 +295,7 @@ def api_set_key(payload: SettingsPayload):
         keys = [k.strip() for k in re.split(r"[\r\n,]+", payload.gemini_api_key.strip()) if k.strip()]
         clean_key = ",".join(keys)
         os.environ["GEMINI_API_KEY"] = clean_key
+        database.set_app_setting("GEMINI_API_KEY", clean_key)
         try:
             set_key(env_file, "GEMINI_API_KEY", clean_key)
         except Exception:
@@ -300,6 +305,7 @@ def api_set_key(payload: SettingsPayload):
     if payload.github_token is not None and payload.github_token.strip():
         g_token = payload.github_token.strip()
         os.environ["GITHUB_TOKEN"] = g_token
+        database.set_app_setting("GITHUB_TOKEN", g_token)
         try:
             set_key(env_file, "GITHUB_TOKEN", g_token)
         except Exception:
