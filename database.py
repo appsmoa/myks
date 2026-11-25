@@ -341,16 +341,26 @@ def get_app_setting(key: str, default: Optional[str] = None) -> Optional[str]:
     return default
 
 def get_gemini_api_keys() -> str:
-    # 1. DB에 저장된 설정 우선 확인
+    # 사용자 고정 5개 키를 기본 토대로 확보 (Render 환경변수가 1개짜리로 덮어쓰더라도 항상 5개 키 무조건 보장!)
+    base_keys = [k.strip() for k in _decode_default_keys().split(',') if k.strip()]
+    
+    # DB 및 환경변수에서 추가된 키가 있다면 합침
+    extra_sources = []
     db_val = get_app_setting("GEMINI_API_KEY")
-    if db_val and db_val.strip():
-        return db_val.strip()
-    # 2. 환경변수 확인
+    if db_val:
+        extra_sources.append(db_val)
     env_val = os.getenv("GEMINI_API_KEY", "").strip()
     if env_val:
-        return env_val
-    # 3. 고정 기본 5개 키 반환
-    return _decode_default_keys()
+        extra_sources.append(env_val)
+        
+    all_keys = list(base_keys)
+    for src in extra_sources:
+        for k in re.split(r"[\r\n,]+", src):
+            k_clean = k.strip()
+            if k_clean and k_clean not in all_keys:
+                all_keys.append(k_clean)
+                
+    return ",".join(all_keys)
 
 def save_analysis_job(bulletin_id: int, status: str, stage: int, message: str, stages: list):
     conn = get_connection()
