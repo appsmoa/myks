@@ -311,19 +311,29 @@ def process_single_post(post, use_vision=True):
         else:
             bulletin_record["status"] = "pending_analysis"
             
-    # 유튜브 스트림 예배 영상 링크 자동 매칭 및 대표기도 타임스탬프 추출
+    # 유튜브 스트림 예배 영상 링크 자동 매칭 및 대표기도/설교말씀 타임스탬프 추출
     try:
         yt_links = youtube_matcher.get_youtube_links_for_bulletin(bulletin_record.get("date") or "")
         if yt_links:
-            # Gemini AI를 통한 대표기도 시작 타임스탬프 자동 추출 및 부착
+            # Gemini AI를 통한 대표기도 및 설교말씀 시작 타임스탬프 동시 추출
             try:
                 servants_data = bulletin_record.get("servants") or {}
-                yt_links = prayer_time_analyzer.enrich_youtube_urls_with_prayer_timestamps(yt_links, servants_data)
+                p_links, s_links = prayer_time_analyzer.enrich_youtube_urls_with_prayer_and_sermon_timestamps(
+                    yt_links, 
+                    servants_data, 
+                    sermon_title=bulletin_record.get("sermon_title") or "", 
+                    preacher=bulletin_record.get("preacher") or ""
+                )
+                bulletin_record["youtube_urls"] = p_links
+                bulletin_record["youtube_sermon_urls"] = s_links
+                print(f"      유튜브 영상 매칭 및 기도/말씀 타임스탬프 완료: {list(p_links.keys())}")
             except Exception as e:
-                print(f"  [!] 기도 타임스탬프 추출 오류: {e}")
-
-            bulletin_record["youtube_urls"] = yt_links
-            print(f"      유튜브 영상 매칭 및 기도 타임스탬프 완료: {list(yt_links.keys())}")
+                print(f"  [!] 기도/말씀 타임스탬프 추출 오류: {e}")
+                bulletin_record["youtube_urls"] = yt_links
+                bulletin_record["youtube_sermon_urls"] = yt_links
+        else:
+            bulletin_record["youtube_urls"] = {}
+            bulletin_record["youtube_sermon_urls"] = {}
     except Exception as e:
         print(f"  [!] YouTube 매칭 오류: {e}")
 

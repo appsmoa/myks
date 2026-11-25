@@ -441,10 +441,10 @@
                 <div id="step3Icon" class="mt-0.5 text-slate-400 text-sm"><i class="fa-regular fa-circle"></i></div>
                 <div class="flex-1">
                   <div class="font-bold flex items-center justify-between">
-                    <span id="step3Title" class="text-slate-300">3단계: Gemini AI 영상 대표기도 탐색</span>
+                    <span id="step3Title" class="text-slate-300">3단계: Gemini AI 영상 기도 & 말씀 탐색</span>
                     <span id="step3Badge" class="text-[11px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-bold">대기</span>
                   </div>
-                  <p id="step3Desc" class="text-[11px] text-slate-400 mt-0.5">영상(1시간+)을 AI가 분석하여 기도 시작 분:초 자동 감지 (약 25~45초)</p>
+                  <p id="step3Desc" class="text-[11px] text-slate-400 mt-0.5">영상(1시간+)을 AI가 분석하여 대표기도 및 설교말씀 시작 분:초 자동 감지</p>
                 </div>
               </div>
 
@@ -456,7 +456,7 @@
                     <span id="step4Title" class="text-slate-300">4단계: 완료 및 데이터 동기화</span>
                     <span id="step4Badge" class="text-[11px] px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-bold">대기</span>
                   </div>
-                  <p id="step4Desc" class="text-[11px] text-slate-400 mt-0.5">데이터베이스 저장 및 기도 시작 타임스탬프 링크 적용</p>
+                  <p id="step4Desc" class="text-[11px] text-slate-400 mt-0.5">데이터베이스 저장 및 기도/말씀 시작 타임스탬프 링크 적용</p>
                 </div>
               </div>
             </div>
@@ -483,6 +483,16 @@
                 <div>
                   <span class="text-[11px] sm:text-xs font-bold text-slate-500 block">설교자</span>
                   <span id="modalPreacher" class="font-extrabold text-sm sm:text-base text-slate-900"></span>
+                </div>
+              </div>
+
+              <!-- Sermon Video Links (말씀영상 - 초록색) -->
+              <div id="modalSermonVideoContainer" class="pt-2.5 border-t border-indigo-200 hidden">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <span class="text-[11px] sm:text-xs font-bold text-slate-600 flex items-center">
+                    <i class="fa-solid fa-play text-emerald-600 mr-1.5"></i>설교 말씀 재생
+                  </span>
+                  <div id="modalSermonVideoButtons" class="flex flex-wrap items-center gap-1.5"></div>
                 </div>
               </div>
             </div>
@@ -1444,6 +1454,7 @@
         const { leader, prayer, prayersList } = extractLeaderAndPrayer(item.servants);
         const searchMatches = currentQuery ? findSearchMatches(item, currentQuery, currentSearchType) : [];
         const ytUrls = item.youtube_urls || {};
+        const ytSermonUrls = item.youtube_sermon_urls || {};
 
         function getYoutubeBadge(timeStr) {
           if (!timeStr || !ytUrls) return '';
@@ -1455,21 +1466,46 @@
           if (!ytLink) return '';
           
           let timeLabel = '';
-          let titleHint = `${timeStr} 실시간 예배 영상 보기`;
+          let titleHint = `${timeStr} 실시간 기도영상 보기`;
           const tMatch = ytLink.match(/[?&]t=(\d+)s?/);
           if (tMatch) {
             const totalSec = parseInt(tMatch[1]);
             const min = Math.floor(totalSec / 60);
             const sec = totalSec % 60;
             const timeFormatted = `${min}:${sec < 10 ? '0' : ''}${sec}`;
-            timeLabel = `<span class="text-[10px] text-rose-500 font-extrabold ml-1">(${timeFormatted}~)</span>`;
-            titleHint = `${timeStr} 실시간 예배 영상 (기도 시작 ${timeFormatted}부터 바로 재생)`;
+            timeLabel = `<span class="text-[10px] text-sky-600 font-extrabold ml-1">(${timeFormatted}~)</span>`;
+            titleHint = `${timeStr} 기도영상 (기도 시작 ${timeFormatted}부터 바로 재생)`;
           }
 
           return `
-            <a href="${ytLink}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" class="inline-flex items-center ml-2 px-2 py-0.5 rounded-md bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 hover:text-rose-700 text-xs font-black transition shadow-2xs group/yt" title="${titleHint}">
-              <i class="fa-brands fa-youtube text-rose-600 text-sm mr-1 group-hover/yt:scale-110 transition-transform"></i>
-              <span>예배영상</span>
+            <a href="${ytLink}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" class="inline-flex items-center ml-2 px-2 py-0.5 rounded-md bg-sky-50 hover:bg-sky-100 border border-sky-300 text-sky-700 hover:text-sky-800 text-xs font-black transition shadow-2xs group/yt" title="${titleHint}">
+              <i class="fa-brands fa-youtube text-sky-500 text-sm mr-1 group-hover/yt:scale-110 transition-transform"></i>
+              <span>기도영상</span>
+              ${timeLabel}
+            </a>
+          `;
+        }
+
+        function getSermonBadge(sUrls) {
+          if (!sUrls) return '';
+          const link = sUrls['11시'] || sUrls['9시'] || sUrls['수요'] || Object.values(sUrls)[0];
+          if (!link) return '';
+          let timeLabel = '';
+          let titleHint = '설교 말씀 영상 보기';
+          const tMatch = link.match(/[?&]t=(\d+)s?/);
+          if (tMatch) {
+            const totalSec = parseInt(tMatch[1]);
+            const min = Math.floor(totalSec / 60);
+            const sec = totalSec % 60;
+            const timeFormatted = `${min}:${sec < 10 ? '0' : ''}${sec}`;
+            timeLabel = `<span class="text-[10px] text-emerald-600 font-extrabold ml-1">(${timeFormatted}~)</span>`;
+            titleHint = `설교 말씀 영상 (시작 ${timeFormatted}부터 바로 재생)`;
+          }
+
+          return `
+            <a href="${link}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" class="inline-flex items-center px-2 py-0.5 rounded-md bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-700 hover:text-emerald-800 text-xs font-black transition shadow-2xs group/sermon" title="${titleHint}">
+              <i class="fa-brands fa-youtube text-emerald-600 text-sm mr-1 group-hover/sermon:scale-110 transition-transform"></i>
+              <span>말씀영상</span>
               ${timeLabel}
             </a>
           `;
@@ -1503,10 +1539,11 @@
               </div>
 
               <!-- Sermon Title (말씀 제목 - 모바일에서 큼직하게 20px) -->
-              <div>
+              <div class="flex flex-wrap items-center gap-2">
                 <h3 class="font-black text-slate-950 group-hover:text-indigo-600 transition text-xl sm:text-2xl leading-snug break-keep">
                   ${sermonTitleDisplay}
                 </h3>
+                ${getSermonBadge(ytSermonUrls)}
               </div>
 
               <!-- Scripture (말씀 본문 - 모바일에서도 선명하게) -->
@@ -1900,6 +1937,33 @@
         document.getElementById('modalScripture').innerText = data.scripture || '-';
         document.getElementById('modalPreacher').innerText = data.preacher || '-';
 
+        // Sermon Video Links (말씀영상 - 초록색)
+        const sermonVideoContainer = document.getElementById('modalSermonVideoContainer');
+        const sermonVideoButtons = document.getElementById('modalSermonVideoButtons');
+        const modalSermonUrls = data.youtube_sermon_urls || {};
+        const sermonEntries = Object.entries(modalSermonUrls).filter(([k, url]) => url);
+        if (sermonEntries.length > 0) {
+          sermonVideoButtons.innerHTML = sermonEntries.map(([worshipType, url]) => {
+            const tMatch = url.match(/[?&]t=(\d+)s?/);
+            let timeLabel = '';
+            if (tMatch) {
+              const totalSec = parseInt(tMatch[1]);
+              const min = Math.floor(totalSec / 60);
+              const sec = totalSec % 60;
+              timeLabel = ` (${min}:${sec < 10 ? '0' : ''}${sec}~)`;
+            }
+            return `
+              <a href="${url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-black transition shadow-xs group/sermon space-x-1.5">
+                <i class="fa-brands fa-youtube text-sm text-emerald-200 group-hover/sermon:text-white"></i>
+                <span>${worshipType} 말씀영상${timeLabel}</span>
+              </a>
+            `;
+          }).join('');
+          sermonVideoContainer.classList.remove('hidden');
+        } else {
+          sermonVideoContainer.classList.add('hidden');
+        }
+
         // Finances (재정 현황 및 항목별 헌금 금액)
         const financesDiv = document.getElementById('modalFinances');
         const financeDate = document.getElementById('modalFinanceDate');
@@ -2032,8 +2096,8 @@
                     timeLabel = ` (${min}:${sec < 10 ? '0' : ''}${sec}~)`;
                   }
                   subBtn = `
-                    <a href="${subYt}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center ml-2 px-2.5 py-0.5 rounded-lg bg-rose-50 hover:bg-rose-600 border border-rose-200 hover:border-rose-600 text-rose-600 hover:text-white text-xs font-black transition shadow-2xs group/yt">
-                      <i class="fa-brands fa-youtube text-xs mr-1 text-rose-600 group-hover/yt:text-white"></i>
+                    <a href="${subYt}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center ml-2 px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-500 border border-sky-300 hover:border-sky-500 text-sky-700 hover:text-white text-xs font-black transition shadow-2xs group/yt">
+                      <i class="fa-brands fa-youtube text-xs mr-1 text-sky-500 group-hover/yt:text-white"></i>
                       <span>기도영상${timeLabel}</span>
                     </a>
                   `;
@@ -2060,10 +2124,10 @@
                   const totalSec = parseInt(tMatch[1]);
                   const min = Math.floor(totalSec / 60);
                   const sec = totalSec % 60;
-                  const modalTimeLabel = `기도 영상 보기 (${min}:${sec < 10 ? '0' : ''}${sec}~)`;
+                  const modalTimeLabel = `기도영상 (${min}:${sec < 10 ? '0' : ''}${sec}~)`;
                   ytBtn = `
-                    <a href="${ytLink}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-600 border border-rose-200 hover:border-rose-600 text-rose-600 hover:text-white text-xs font-black transition shadow-2xs group/yt">
-                      <i class="fa-brands fa-youtube text-sm mr-1.5 text-rose-600 group-hover/yt:text-white"></i>
+                    <a href="${ytLink}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-500 border border-sky-300 hover:border-sky-500 text-sky-700 hover:text-white text-xs font-black transition shadow-2xs group/yt">
+                      <i class="fa-brands fa-youtube text-sm mr-1.5 text-sky-500 group-hover/yt:text-white"></i>
                       <span>${modalTimeLabel}</span>
                     </a>
                   `;
@@ -2071,14 +2135,14 @@
                   ytBtn = `
                     <span class="inline-flex items-center px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-black shadow-2xs animate-pulse">
                       <i class="fa-solid fa-circle-notch fa-spin text-indigo-600 mr-1.5"></i>
-                      <span>AI 기도 시간 분석 중...</span>
+                      <span>AI 기도/말씀 시간 분석 중...</span>
                     </span>
                   `;
                 } else {
                   ytBtn = `
-                    <a href="${ytLink}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-600 border border-rose-200 hover:border-rose-600 text-rose-600 hover:text-white text-xs font-black transition shadow-2xs group/yt">
-                      <i class="fa-brands fa-youtube text-sm mr-1.5 text-rose-600 group-hover/yt:text-white"></i>
-                      <span>실시간 예배 영상 보기</span>
+                    <a href="${ytLink}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-500 border border-sky-300 hover:border-sky-500 text-sky-700 hover:text-white text-xs font-black transition shadow-2xs group/yt">
+                      <i class="fa-brands fa-youtube text-sm mr-1.5 text-sky-500 group-hover/yt:text-white"></i>
+                      <span>기도영상 보기</span>
                     </a>
                   `;
                 }
@@ -2374,7 +2438,7 @@
         stages: [
           { name: "주보 이미지 Vision 분석", status: "running", detail: "설교, 본문, 기도자, 헌금 추출 중 (약 5~10초)" },
           { name: "유튜브 예배 영상 자동 매칭", status: "pending", detail: "대기 중" },
-          { name: "Gemini AI 영상 대표기도 탐색", status: "pending", detail: "대기 중" },
+          { name: "Gemini AI 영상 기도 & 말씀 탐색", status: "pending", detail: "대기 중" },
           { name: "데이터 저장 및 완료", status: "pending", detail: "대기 중" }
         ]
       });

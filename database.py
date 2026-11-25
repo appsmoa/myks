@@ -262,6 +262,8 @@ def init_db():
         cursor.execute("ALTER TABLE bulletins ADD COLUMN finances TEXT;")
     if "youtube_urls" not in columns:
         cursor.execute("ALTER TABLE bulletins ADD COLUMN youtube_urls TEXT;")
+    if "youtube_sermon_urls" not in columns:
+        cursor.execute("ALTER TABLE bulletins ADD COLUMN youtube_sermon_urls TEXT;")
         
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_bulletins_date ON bulletins(date);")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_bulletins_sermon ON bulletins(sermon_title);")
@@ -323,14 +325,15 @@ def save_bulletin(data: Dict[str, Any]):
     offerings_json = json.dumps(data.get("offerings", {}), ensure_ascii=False) if isinstance(data.get("offerings"), (dict, list)) else data.get("offerings", "")
     finances_json = json.dumps(data.get("finances", {}), ensure_ascii=False) if isinstance(data.get("finances"), (dict, list)) else data.get("finances", "")
     youtube_urls_json = json.dumps(data.get("youtube_urls", {}), ensure_ascii=False) if isinstance(data.get("youtube_urls"), (dict, list)) else data.get("youtube_urls", "")
+    youtube_sermon_urls_json = json.dumps(data.get("youtube_sermon_urls", {}), ensure_ascii=False) if isinstance(data.get("youtube_sermon_urls"), (dict, list)) else data.get("youtube_sermon_urls", "")
     raw_analysis = json.dumps(data.get("raw_analysis_json", {}), ensure_ascii=False) if isinstance(data.get("raw_analysis_json"), dict) else data.get("raw_analysis_json", "")
 
     cursor.execute("""
     INSERT INTO bulletins (
         id, post_num, title, post_date, author, view_count, detail_url, image_urls,
-        date, sermon_title, scripture, preacher, servants, announcements, offerings, finances, youtube_urls, raw_analysis_json,
+        date, sermon_title, scripture, preacher, servants, announcements, offerings, finances, youtube_urls, youtube_sermon_urls, raw_analysis_json,
         status, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     ON CONFLICT(id) DO UPDATE SET
         post_num = excluded.post_num,
         title = excluded.title,
@@ -348,6 +351,7 @@ def save_bulletin(data: Dict[str, Any]):
         offerings = COALESCE(excluded.offerings, bulletins.offerings),
         finances = COALESCE(excluded.finances, bulletins.finances),
         youtube_urls = COALESCE(NULLIF(excluded.youtube_urls, ''), bulletins.youtube_urls),
+        youtube_sermon_urls = COALESCE(NULLIF(excluded.youtube_sermon_urls, ''), bulletins.youtube_sermon_urls),
         raw_analysis_json = COALESCE(excluded.raw_analysis_json, bulletins.raw_analysis_json),
         status = excluded.status,
         updated_at = CURRENT_TIMESTAMP
@@ -369,6 +373,7 @@ def save_bulletin(data: Dict[str, Any]):
         offerings_json,
         finances_json,
         youtube_urls_json,
+        youtube_sermon_urls_json,
         raw_analysis,
         data.get("status", "pending")
     ))

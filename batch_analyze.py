@@ -75,12 +75,18 @@ def run_batch_analysis(limit=None, delay=2.5):
                     "status": "analyzed"
                 }
 
-                # 유튜브 스트림 예배 영상 링크 및 대표기도 타임스탬프 자동 매칭
+                # 유튜브 스트림 예배 영상 링크 및 대표기도/설교말씀 타임스탬프 자동 매칭
                 try:
                     yt_links = youtube_matcher.get_youtube_links_for_bulletin(update_data["date"])
                     if yt_links:
-                        yt_links = prayer_time_analyzer.enrich_youtube_urls_with_prayer_timestamps(yt_links, update_data.get("servants") or {})
-                        update_data["youtube_urls"] = yt_links
+                        p_links, s_links = prayer_time_analyzer.enrich_youtube_urls_with_prayer_and_sermon_timestamps(
+                            yt_links, 
+                            update_data.get("servants") or {}, 
+                            sermon_title=update_data.get("sermon_title") or "", 
+                            preacher=update_data.get("preacher") or ""
+                        )
+                        update_data["youtube_urls"] = p_links
+                        update_data["youtube_sermon_urls"] = s_links
                 except Exception as e:
                     print(f"  [!] YouTube 매칭 오류: {e}")
 
