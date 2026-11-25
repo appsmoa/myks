@@ -1585,20 +1585,22 @@
               </div>
 
               <!-- Sermon Title (말씀 제목 - 모바일에서 큼직하게 20px) -->
-              <div class="flex flex-wrap items-center gap-2">
+              <div>
                 <h3 class="font-black text-slate-950 group-hover:text-indigo-600 transition text-xl sm:text-2xl leading-snug break-keep">
                   ${sermonTitleDisplay}
                 </h3>
-                ${getSermonBadge(ytSermonUrls)}
               </div>
 
-              <!-- Scripture (말씀 본문 - 모바일에서도 선명하게) -->
-              ${item.scripture ? `
-                <div class="inline-flex items-center text-sm sm:text-base font-black text-indigo-950 bg-indigo-50/90 px-3 py-1.5 rounded-xl border border-indigo-200 w-fit break-keep shadow-2xs">
-                  <i class="fa-solid fa-book-bible mr-2 text-indigo-600 text-base"></i>
-                  <span>${scriptureDisplay}</span>
-                </div>
-              ` : ''}
+              <!-- Scripture (말씀 구절) & 말씀영상 뱃지 (말씀구절 옆 배치) -->
+              <div class="flex flex-wrap items-center gap-2">
+                ${item.scripture ? `
+                  <div class="inline-flex items-center text-sm sm:text-base font-black text-indigo-950 bg-indigo-50/90 px-3 py-1.5 rounded-xl border border-indigo-200 w-fit break-keep shadow-2xs">
+                    <i class="fa-solid fa-book-bible mr-2 text-indigo-600 text-base"></i>
+                    <span>${scriptureDisplay}</span>
+                  </div>
+                ` : ''}
+                ${getSermonBadge(ytSermonUrls)}
+              </div>
 
               <!-- Preacher, Leader, Prayer Row (설교자, 인도자, 기도자 - 줄간격 및 크기 일치, 시간대별 줄 분리) -->
               <div class="pt-2.5 border-t border-slate-100 flex flex-col space-y-2.5">
