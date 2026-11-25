@@ -231,6 +231,53 @@ class SettingsPayload(BaseModel):
     github_token: Optional[str] = None
     password: str
 
+class LoadKeysPayload(BaseModel):
+    password: str
+
+@app.get("/api/settings/key-summary")
+def api_get_key_summary():
+    raw_key = os.getenv("GEMINI_API_KEY", "").strip()
+    keys = [k.strip() for k in re.split(r"[\r\n,]+", raw_key) if k.strip()]
+    
+    masked_keys = []
+    for idx, k in enumerate(keys, 1):
+        if len(k) <= 10:
+            preview = k[:3] + "..." + k[-2:] if len(k) > 5 else "***"
+        else:
+            preview = k[:6] + "..." + k[-4:]
+        masked_keys.append({"index": idx, "preview": preview})
+        
+    raw_gh = os.getenv("GITHUB_TOKEN", "").strip()
+    gh_preview = ""
+    if raw_gh:
+        gh_preview = raw_gh[:6] + "..." + raw_gh[-4:] if len(raw_gh) > 10 else "ghp_***"
+
+    return {
+        "gemini_keys_count": len(keys),
+        "gemini_masked_keys": masked_keys,
+        "has_gemini_key": len(keys) > 0,
+        "has_github_token": bool(raw_gh),
+        "github_token_preview": gh_preview
+    }
+
+@app.post("/api/settings/load-keys")
+def api_load_keys(payload: LoadKeysPayload):
+    if payload.password.strip() != "4123":
+        raise HTTPException(status_code=403, detail="관리자 비밀번호가 올바르지 않습니다.")
+        
+    raw_key = os.getenv("GEMINI_API_KEY", "").strip()
+    keys = [k.strip() for k in re.split(r"[\r\n,]+", raw_key) if k.strip()]
+    formatted_keys = ",\n".join(keys)
+    
+    raw_gh = os.getenv("GITHUB_TOKEN", "").strip()
+    
+    return {
+        "status": "ok",
+        "gemini_api_key": formatted_keys,
+        "github_token": raw_gh,
+        "count": len(keys)
+    }
+
 @app.post("/api/settings/key")
 def api_set_key(payload: SettingsPayload):
     if payload.password.strip() != "4123":
@@ -239,16 +286,18 @@ def api_set_key(payload: SettingsPayload):
     env_file = os.path.join(BASE_DIR, ".env")
     updated_items = []
     
-    if payload.gemini_api_key and payload.gemini_api_key.strip():
-        key = payload.gemini_api_key.strip()
-        os.environ["GEMINI_API_KEY"] = key
+    if payload.gemini_api_key is not None and payload.gemini_api_key.strip():
+        # 쉼표나 개행문자로 분리하여 공백 제거 후 쉼표로 재조합
+        keys = [k.strip() for k in re.split(r"[\r\n,]+", payload.gemini_api_key.strip()) if k.strip()]
+        clean_key = ",".join(keys)
+        os.environ["GEMINI_API_KEY"] = clean_key
         try:
-            set_key(env_file, "GEMINI_API_KEY", key)
+            set_key(env_file, "GEMINI_API_KEY", clean_key)
         except Exception:
             pass
-        updated_items.append("Gemini API 키")
+        updated_items.append(f"Gemini API 키 {len(keys)}개")
         
-    if payload.github_token and payload.github_token.strip():
+    if payload.github_token is not None and payload.github_token.strip():
         g_token = payload.github_token.strip()
         os.environ["GITHUB_TOKEN"] = g_token
         try:
