@@ -547,9 +547,10 @@ def api_get_bulletin_analyze_status(b_id: int):
     if item:
         is_analyzed = item.get("status") == "analyzed"
         return {
-            "status": "completed" if is_analyzed else "idle",
+            "status": "idle",
+            "is_analyzed": is_analyzed,
             "stage": 4 if is_analyzed else 0,
-            "message": "정리 완료됨" if is_analyzed else "정리 대기 상태",
+            "message": "정리 완료 상태" if is_analyzed else "정리 대기 상태",
             "stages": []
         }
 
