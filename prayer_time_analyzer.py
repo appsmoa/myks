@@ -120,7 +120,8 @@ def extract_worship_timestamps_with_gemini(
     sermon_title: str = "", 
     preacher: str = "", 
     worship_type: str = "", 
-    start_key_idx: int = 0
+    start_key_idx: int = 0,
+    status_callback = None
 ) -> dict:
     """
     Gemini 1.5/2.0 API의 비디오 이해 기능을 통해
@@ -136,10 +137,14 @@ def extract_worship_timestamps_with_gemini(
     api_key_str = get_gemini_api_keys()
     if not api_key_str:
         print("[WorshipAnalyzer] GEMINI_API_KEY가 설정되지 않았습니다.")
+        if status_callback:
+            status_callback("❌ Gemini API 키가 설정되지 않았습니다.")
         return res_dict
 
     keys = [k.strip() for k in api_key_str.replace('\n', ',').split(',') if k.strip()]
     if not keys:
+        if status_callback:
+            status_callback("❌ 등록된 유효한 Gemini API 키가 없습니다.")
         return res_dict
 
     vid_match = re.search(r'(?:v=|\/embed\/|youtu\.be\/)([a-zA-Z0-9_-]{11})', youtube_url)
@@ -152,6 +157,9 @@ def extract_worship_timestamps_with_gemini(
     clean_sermon = sermon_title.strip() if sermon_title else "주일 설교"
     clean_preacher = preacher.strip() if preacher else "담임목사"
     worship_hint = f" ({worship_type} 예배)" if worship_type else ""
+
+    if status_callback:
+        status_callback(f"유튜브 {worship_type} 영상 분석 중... (Gemini 3.1 Flash Lite)")
 
     prompt_primary = f"""
 당신은 교회 예배 영상 정밀 분석 전문가입니다.
@@ -218,8 +226,14 @@ JSON으로 응답해 주세요:
         for key_idx, key in enumerate(ordered_keys):
             for model in models:
                 api_url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
+                model_display = "Gemini 3.1 Flash Lite" if "flash-lite" in model else "Gemini 3.8 Flash"
+                key_display = f"Key #{key_idx + 1}"
+                
+                if status_callback:
+                    status_callback(f"[{model_display} · {key_display}] {worship_type} 예배 영상 타임스탬프 분석 중...")
+
                 try:
-                    print(f"[WorshipAnalyzer] 영상 분석 요청({attempt}차): {worship_type} [{clean_prayer}/{clean_sermon}] ({clean_video_url}, {model}, Key #{key_idx + 1})...")
+                    print(f"[WorshipAnalyzer] 영상 분석 요청({attempt}차): {worship_type} [{clean_prayer}/{clean_sermon}] ({clean_video_url}, {model}, {key_display})...")
                     res = requests.post(api_url, json=payload, headers={"Content-Type": "application/json"}, timeout=65)
                     if res.status_code == 200:
                         res_data = res.json()
@@ -232,9 +246,21 @@ JSON으로 응답해 주세요:
                                 print(f"[WorshipAnalyzer] 성공! [{worship_type}] 기도: {p_sec}초 | 설교: {s_sec}초")
                                 res_dict["prayer_seconds"] = p_sec
                                 res_dict["sermon_seconds"] = s_sec
+                                if status_callback:
+                                    status_callback(f"✨ [{model_display}] {worship_type} 예배 타임스탬프 탐색 성공")
                                 return res_dict
-                    elif res.status_code in (429, 503):
-                        print(f"[WorshipAnalyzer] 일시적 부하 ({res.status_code}), 다음 키로 교체 재시도...")
+                    elif res.status_code == 429:
+                        msg = f"⚠️ [{model_display} · {key_display}] Google 분당 한도(TPM 250K) 도달: 다음 키 전환 및 쿨타임 대기 중... ({worship_type} 예배)"
+                        print(f"[WorshipAnalyzer] {msg}")
+                        if status_callback:
+                            status_callback(msg)
+                        time.sleep(3)
+                        continue
+                    elif res.status_code == 503:
+                        msg = f"⚠️ [{model_display}] 구글 서버 일시 과부하(503): 잠시 대기 후 자동 재시도 중... ({worship_type} 예배)"
+                        print(f"[WorshipAnalyzer] {msg}")
+                        if status_callback:
+                            status_callback(msg)
                         time.sleep(2)
                         continue
                     else:
@@ -258,12 +284,14 @@ def attach_timestamp_to_youtube_url(url: str, seconds: int) -> str:
     return f"{base_url}{sep}t={seconds}s"
 
 from concurrent.futures import ThreadPoolExecutor
+import threading
 
 def enrich_youtube_urls_with_prayer_and_sermon_timestamps(
     yt_links: dict, 
     servants: dict, 
     sermon_title: str = "", 
-    preacher: str = ""
+    preacher: str = "",
+    status_callback = None
 ) -> tuple:
     """
     유튜브 영상 링크 딕셔너리를 입력받아,
@@ -289,6 +317,12 @@ def enrich_youtube_urls_with_prayer_and_sermon_timestamps(
     if not tasks:
         return prayer_urls, sermon_urls
 
+    cb_lock = threading.Lock()
+    def safe_callback(msg: str):
+        if status_callback:
+            with cb_lock:
+                status_callback(msg)
+
     def analyze_one(item):
         key_slot, w_type, url, p_name = item
         timestamps = extract_worship_timestamps_with_gemini(
@@ -297,7 +331,8 @@ def enrich_youtube_urls_with_prayer_and_sermon_timestamps(
             sermon_title=sermon_title, 
             preacher=preacher, 
             worship_type=w_type, 
-            start_key_idx=key_slot
+            start_key_idx=key_slot,
+            status_callback=safe_callback
         )
         return w_type, url, timestamps
 

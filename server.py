@@ -396,9 +396,9 @@ def run_full_reanalyze_pipeline(b_id: int):
         "message": "1단계: Gemini Vision으로 주보 이미지 텍스트 분석 중...",
         "updated_at": time.time(),
         "stages": [
-            {"name": "주보 이미지 Vision 분석", "status": "running", "detail": "설교, 본문, 기도자, 헌금 추출 중 (약 5~10초)"},
+            {"name": "주보 이미지 Vision 분석", "status": "running", "detail": "[Gemini 3.1 Flash Lite] 본문, 설교, 기도자 추출 중..."},
             {"name": "유튜브 예배 영상 매칭", "status": "pending", "detail": "대기 중"},
-            {"name": "Gemini 영상 기도 & 말씀 탐색", "status": "pending", "detail": "대기 중"},
+            {"name": "Gemini AI 영상 기도 & 말씀 탐색", "status": "pending", "detail": "대기 중"},
             {"name": "데이터 저장 및 완료", "status": "pending", "detail": "대기 중"}
         ]
     }
@@ -460,7 +460,7 @@ def run_full_reanalyze_pipeline(b_id: int):
         if yt_links and analysis.get("servants"):
             job_state["message"] = "3단계: Gemini AI가 유튜브 영상에서 대표기도 및 설교말씀 시작 분:초 탐색 중... (약 25~45초 소요)"
             job_state["stages"][2]["status"] = "running"
-            job_state["stages"][2]["detail"] = "유튜브 영상 타임스탬프 분석 중... 잠시만 기다려 주세요."
+            job_state["stages"][2]["detail"] = "[Gemini 3.1 Flash Lite · 고속 분석] 유튜브 영상 타임스탬프 분석 중..."
             set_job_state(job_state)
             
             try:
@@ -471,11 +471,17 @@ def run_full_reanalyze_pipeline(b_id: int):
                     except Exception:
                         pass
                 
+                def on_video_progress(msg: str):
+                    job_state["stages"][2]["detail"] = msg
+                    job_state["updated_at"] = time.time()
+                    set_job_state(job_state)
+
                 prayer_urls, sermon_urls = prayer_time_analyzer.enrich_youtube_urls_with_prayer_and_sermon_timestamps(
                     yt_links, 
                     parsed_servants or {}, 
                     sermon_title=analysis.get("sermon_title") or "", 
-                    preacher=analysis.get("preacher") or ""
+                    preacher=analysis.get("preacher") or "",
+                    status_callback=on_video_progress
                 )
                 
                 conn = database.get_connection()
@@ -561,9 +567,9 @@ def api_analyze_single(b_id: int, background_tasks: BackgroundTasks):
         "message": "1단계: Gemini Vision으로 주보 이미지 텍스트 분석 중...",
         "updated_at": time.time(),
         "stages": [
-            {"name": "주보 이미지 Vision 분석", "status": "running", "detail": "설교, 본문, 기도자, 헌금 추출 중 (약 5~10초)"},
+            {"name": "주보 이미지 Vision 분석", "status": "running", "detail": "[Gemini 3.1 Flash Lite] 본문, 설교, 기도자 추출 중..."},
             {"name": "유튜브 예배 영상 매칭", "status": "pending", "detail": "대기 중"},
-            {"name": "Gemini 영상 기도 & 말씀 탐색", "status": "pending", "detail": "대기 중"},
+            {"name": "Gemini AI 영상 기도 & 말씀 탐색", "status": "pending", "detail": "대기 중"},
             {"name": "데이터 저장 및 완료", "status": "pending", "detail": "대기 중"}
         ]
     }
