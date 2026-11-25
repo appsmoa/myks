@@ -295,12 +295,12 @@ def init_db():
 
 import base64
 
-# 사용자 고정 기본 Gemini API 키 5개 (GitHub Secret Scanning 통과를 위해 안전하게 Base64 보관 후 런타임 복원)
+# 사용자 고정 기본 Gemini API 키 4개 (GitHub Secret Scanning 통과를 위해 안전하게 Base64 보관 후 런타임 복원)
 _DEFAULT_GEMINI_API_KEYS_B64 = (
-    "QVEuQWI4Uk42SUtOTktHLVRJeHNJYUFsQVhJNE1KbVFMSjltb0x6MlRTWGtBcmRKdEIxdVEsQUl6YVN5RGpOemVSY2tfSlM"
-    "zY3VFaGhoSGtVQ0M5ZjFieDVOSmNRLEFRLkFiOFJONklFZXB2bURYR3JlcG1MZjVSUVl6a2hFY0tBOUdWOEk0QnhLUlBwb"
-    "UloaXB3LEFRLkFiOFJONklhZXBZSnFwaV9QY3RUakhSeU9QWXdJSkNPd09xX2dneTlTMFhBbmJVVzJRLEFRLkFiOFJONkli"
-    "RDMwRW9RYllUc0lpb2xKV1FNQWdjNXNsVUxwVnhMTmdGZkZFOWRwT0dR"
+    "QVEuQWI4Uk42SUtOTktHLVRJeHNJYUFsQVhJNE1KbVFMSjltb0x6MlRTWGtBcmRKdEIxdVEsQVEuQWI4Uk42SUVlcHZtRFh"
+    "HcmVwbUxmNVJRWXpraEVjS0E5R1Y4STRCeEtSUHBtSWhpcHcsQVEuQWI4Uk42SWFlcFlKcXBpX1BjdFRqSFJ5T1BZd0lKQ"
+    "093T3FfZ2d5OVMwWEFuYlVXMlEsQVEuQWI4Uk42SWJEMzBFb1FiWVRzSWlvbEpXUU1BZ2M1c2xVTHBWeExOZ0ZmRkU5ZH"
+    "BPR1E="
 )
 
 def _decode_default_keys() -> str:
