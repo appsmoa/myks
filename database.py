@@ -688,6 +688,40 @@ def get_bulletin_calendar_dates() -> List[Dict[str, Any]]:
     conn.close()
     return [{"id": r["id"], "post_num": r["post_num"], "date": r["date"], "sermon_title": r["sermon_title"] or ""} for r in rows]
 
+def get_prev_next_bulletin(b_id: int) -> dict:
+    """
+    주보 상세 화면 내비게이션용:
+    현재 주보 기준 이전(과거: id < b_id) 주보와 다음(미래: id > b_id) 주보의 기본 정보를 반환합니다.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    # 이전 주보 (과거 날짜 / 이전 번호)
+    cursor.execute("""
+        SELECT id, post_num, date, title 
+        FROM bulletins 
+        WHERE id < ? 
+        ORDER BY id DESC 
+        LIMIT 1
+    """, (b_id,))
+    prev_row = cursor.fetchone()
+    
+    # 다음 주보 (미래 날짜 / 다음 번호)
+    cursor.execute("""
+        SELECT id, post_num, date, title 
+        FROM bulletins 
+        WHERE id > ? 
+        ORDER BY id ASC 
+        LIMIT 1
+    """, (b_id,))
+    next_row = cursor.fetchone()
+    
+    conn.close()
+    return {
+        "prev": dict(prev_row) if prev_row else None,
+        "next": dict(next_row) if next_row else None
+    }
+
 if __name__ == "__main__":
     init_db()
     print("[*] DB migrated successfully.")

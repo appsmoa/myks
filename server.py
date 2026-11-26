@@ -228,6 +228,11 @@ def api_get_bulletin(b_id: int, request: Request, key: Optional[str] = None):
             yt_sermon = {}
     record["youtube_sermon_urls"] = yt_sermon or {}
 
+    # 주보 상세 모달 내비게이션 (이전/다음 주보 정보)
+    nav = database.get_prev_next_bulletin(record["id"])
+    record["prev_bulletin"] = nav["prev"]
+    record["next_bulletin"] = nav["next"]
+
     return record
 
 class SettingsPayload(BaseModel):

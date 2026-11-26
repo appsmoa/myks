@@ -354,15 +354,27 @@
     <div class="bg-white rounded-2xl sm:rounded-3xl max-w-6xl w-full max-h-[96vh] flex flex-col shadow-2xl overflow-hidden border border-slate-300">
       
       <!-- Modal Header -->
-      <div class="px-4 sm:px-8 py-3.5 sm:py-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-        <div>
+      <div class="px-4 sm:px-8 py-3 sm:py-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-slate-50">
+        <div class="flex-1 min-w-[200px]">
           <div class="flex items-center space-x-2">
             <span id="modalDateBadge" class="px-3 py-1 rounded-xl text-xs sm:text-sm font-black bg-indigo-600 text-white shadow-xs"></span>
             <span id="modalStatusBadge" class="px-2.5 py-0.5 rounded-xl text-xs font-bold"></span>
           </div>
           <h3 id="modalTitle" class="text-lg sm:text-2xl font-black text-slate-950 mt-1 leading-snug"></h3>
         </div>
-        <div class="flex items-center space-x-2 sm:space-x-3">
+        <div class="flex items-center flex-wrap gap-2 sm:gap-3">
+          <!-- 이전 / 다음 주보 내비게이션 버튼 (날짜 표기 및 단축키 안내) -->
+          <div class="flex items-center space-x-1 bg-white p-1 rounded-2xl border border-slate-300 shadow-2xs">
+            <button id="modalPrevBtn" onclick="navigateBulletin('prev')" class="inline-flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold bg-slate-50 hover:bg-indigo-50 text-slate-700 hover:text-indigo-600 border border-slate-200 hover:border-indigo-300 transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer" title="이전 주보 보기 (단축키: ←)">
+              <i class="fa-solid fa-chevron-left text-[11px]"></i>
+              <span id="modalPrevBtnText">이전</span>
+            </button>
+            <button id="modalNextBtn" onclick="navigateBulletin('next')" class="inline-flex items-center space-x-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs sm:text-sm font-bold bg-slate-50 hover:bg-indigo-50 text-slate-700 hover:text-indigo-600 border border-slate-200 hover:border-indigo-300 transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer" title="다음 주보 보기 (단축키: →)">
+              <span id="modalNextBtnText">다음</span>
+              <i class="fa-solid fa-chevron-right text-[11px]"></i>
+            </button>
+          </div>
+
           <a id="modalOriginalLink" href="#" target="_blank" class="text-xs sm:text-sm font-bold text-slate-700 hover:text-indigo-600 px-3 py-2 rounded-xl border border-slate-300 hover:bg-white flex items-center space-x-1.5 transition">
             <i class="fa-solid fa-arrow-up-right-from-square"></i>
             <span class="hidden sm:inline">교회 원문글</span>
@@ -557,6 +569,18 @@
               <button id="modalReanalyzeBtn" onclick="reanalyzeCurrent()" class="w-full py-3.5 px-4 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-base flex items-center justify-center space-x-2 transition shadow-lg">
                 <i class="fa-solid fa-wand-magic-sparkles text-amber-300 text-lg"></i>
                 <span>주보 데이터 정리하기</span>
+              </button>
+            </div>
+
+            <!-- Modal Bottom Navigation (하단 이전/다음 주보 이동) -->
+            <div class="mt-4 pt-3.5 border-t border-slate-200 flex items-center justify-between gap-3">
+              <button id="modalBottomPrevBtn" onclick="navigateBulletin('prev')" class="flex-1 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 text-slate-700 hover:text-indigo-700 text-xs sm:text-sm font-bold flex items-center justify-center space-x-1.5 transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
+                <i class="fa-solid fa-arrow-left text-xs"></i>
+                <span id="modalBottomPrevBtnText">이전 주보</span>
+              </button>
+              <button id="modalBottomNextBtn" onclick="navigateBulletin('next')" class="flex-1 py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 text-slate-700 hover:text-indigo-700 text-xs sm:text-sm font-bold flex items-center justify-center space-x-1.5 transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
+                <span id="modalBottomNextBtnText">다음 주보</span>
+                <i class="fa-solid fa-arrow-right text-xs"></i>
               </button>
             </div>
           </div>
@@ -1952,6 +1976,60 @@
       showToast('날짜 필터가 해제되었습니다.');
     }
 
+    let currentPrevBulletin = null;
+    let currentNextBulletin = null;
+
+    function updateModalNavigation(prevItem, nextItem) {
+      currentPrevBulletin = prevItem;
+      currentNextBulletin = nextItem;
+      
+      const prevBtn = document.getElementById('modalPrevBtn');
+      const prevBtnText = document.getElementById('modalPrevBtnText');
+      const nextBtn = document.getElementById('modalNextBtn');
+      const nextBtnText = document.getElementById('modalNextBtnText');
+
+      const btmPrevBtn = document.getElementById('modalBottomPrevBtn');
+      const btmPrevBtnText = document.getElementById('modalBottomPrevBtnText');
+      const btmNextBtn = document.getElementById('modalBottomNextBtn');
+      const btmNextBtnText = document.getElementById('modalBottomNextBtnText');
+
+      if (prevItem && prevItem.id) {
+        const dateStr = prevItem.date || `#${prevItem.post_num}`;
+        const label = `이전 (${dateStr})`;
+        if (prevBtn) { prevBtn.disabled = false; prevBtn.title = `이전 주보 보기: ${dateStr} (단축키: ←)`; }
+        if (prevBtnText) { prevBtnText.innerText = label; }
+        if (btmPrevBtn) { btmPrevBtn.disabled = false; }
+        if (btmPrevBtnText) { btmPrevBtnText.innerText = label; }
+      } else {
+        if (prevBtn) { prevBtn.disabled = true; prevBtn.title = '이전 주보가 없습니다'; }
+        if (prevBtnText) { prevBtnText.innerText = '이전 없음'; }
+        if (btmPrevBtn) { btmPrevBtn.disabled = true; }
+        if (btmPrevBtnText) { btmPrevBtnText.innerText = '이전 주보 없음'; }
+      }
+
+      if (nextItem && nextItem.id) {
+        const dateStr = nextItem.date || `#${nextItem.post_num}`;
+        const label = `다음 (${dateStr})`;
+        if (nextBtn) { nextBtn.disabled = false; nextBtn.title = `다음 주보 보기: ${dateStr} (단축키: →)`; }
+        if (nextBtnText) { nextBtnText.innerText = label; }
+        if (btmNextBtn) { btmNextBtn.disabled = false; }
+        if (btmNextBtnText) { btmNextBtnText.innerText = label; }
+      } else {
+        if (nextBtn) { nextBtn.disabled = true; nextBtn.title = '다음 주보가 없습니다'; }
+        if (nextBtnText) { nextBtnText.innerText = '다음 없음'; }
+        if (btmNextBtn) { btmNextBtn.disabled = true; }
+        if (btmNextBtnText) { btmNextBtnText.innerText = '다음 주보 없음'; }
+      }
+    }
+
+    function navigateBulletin(direction) {
+      if (direction === 'prev' && currentPrevBulletin && currentPrevBulletin.id) {
+        openDetailModal(currentPrevBulletin.id);
+      } else if (direction === 'next' && currentNextBulletin && currentNextBulletin.id) {
+        openDetailModal(currentNextBulletin.id);
+      }
+    }
+
     async function openDetailModal(id, preserveCard = false) {
       currentBulletinId = id;
       if (!preserveCard) {
@@ -1965,6 +2043,9 @@
         const res = await fetch(`/api/bulletins/${id}`);
         const data = await res.json();
         
+        // 이전 / 다음 주보 내비게이션 버튼 갱신
+        updateModalNavigation(data.prev_bulletin, data.next_bulletin);
+
         document.getElementById('modalTitle').innerText = data.title;
         document.getElementById('modalDateBadge').innerText = data.date || '날짜 미상';
         document.getElementById('modalOriginalLink').href = data.detail_url;
@@ -2496,7 +2577,22 @@
     function closeDetailModal() {
       document.getElementById('detailModal').classList.add('hidden');
       currentBulletinId = null;
+      currentPrevBulletin = null;
+      currentNextBulletin = null;
     }
+
+    // 모달 활성화 시 키보드 좌/우 화살표로 이전/다음 주보 이동
+    document.addEventListener('keydown', (e) => {
+      const modal = document.getElementById('detailModal');
+      if (!modal || modal.classList.contains('hidden')) return;
+      if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+
+      if (e.key === 'ArrowLeft') {
+        navigateBulletin('prev');
+      } else if (e.key === 'ArrowRight') {
+        navigateBulletin('next');
+      }
+    });
 
     async function reanalyzeCurrent() {
       if (!currentBulletinId) return;
