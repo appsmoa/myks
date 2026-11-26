@@ -184,6 +184,16 @@ def fetch_youtube_streams(force_refresh: bool = False) -> List[dict]:
         _cached_streams = resolve_stream_types(combined)
         _cache_time = now
         print(f"[YouTube Matcher] 성공적으로 최신 {len(new_items)}건 추가, 총 {len(_cached_streams)}건 유지 중.")
+        
+        if new_items:
+            try:
+                hist_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), HISTORY_FILE)
+                with open(hist_path, "w", encoding="utf-8") as f:
+                    json.dump(_cached_streams, f, ensure_ascii=False, indent=2)
+                print(f"[YouTube Matcher] {len(new_items)}건의 새 스트림을 {HISTORY_FILE}에 영구 저장했습니다.")
+            except Exception as se:
+                print(f"[YouTube Matcher Save Error] {se}")
+
         return _cached_streams
 
     except Exception as e:
@@ -193,6 +203,7 @@ def fetch_youtube_streams(force_refresh: bool = False) -> List[dict]:
 def get_youtube_links_for_bulletin(bulletin_date_str: str) -> Dict[str, str]:
     """
     주보 날짜 (YYYY-MM-DD 또는 YYYY.MM.DD)에 매칭되는 9시, 11시, 수요예배 유튜브 링크를 찾습니다.
+    - 주보의 수요예배는 주일(일요일) 직후의 다가오는 수요일(일요일 + 3일) 예배입니다.
     반환 예시:
     {
         "9시": "https://www.youtube.com/watch?v=...",
@@ -218,14 +229,20 @@ def get_youtube_links_for_bulletin(bulletin_date_str: str) -> Dict[str, str]:
     if not streams:
         return {}
 
-    # 주일 기준 직전 수요일 계산 (일요일이면 -4일)
+    # 주보의 수요예배는 주일(일요일) 직후의 다가오는 수요일입니다.
+    # 일요일(weekday=6) 기준 +3일 = 수요일
+    # 토요일(weekday=5) 기준 +4일 = 수요일
     weekday = dt.weekday()
-    if weekday == 6: # 일요일
-        wed_dt = dt - timedelta(days=4)
-    else:
-        wed_dt = dt - timedelta(days=(weekday - 2) % 7)
+    if weekday == 6:  # 일요일
+        wed_dt = dt + timedelta(days=3)
+    elif weekday == 5:  # 토요일
+        wed_dt = dt + timedelta(days=4)
+    elif weekday <= 2:  # 월~수요일
+        wed_dt = dt + timedelta(days=(2 - weekday))
+    else:  # 목~금요일
+        wed_dt = dt + timedelta(days=(9 - weekday))
 
-    wm, wd = wed_dt.month, wed_dt.day
+    wy, wm, wd = wed_dt.year, wed_dt.month, wed_dt.day
 
     results = {}
 
@@ -243,10 +260,26 @@ def get_youtube_links_for_bulletin(bulletin_date_str: str) -> Dict[str, str]:
     if item_11:
         results['11시'] = item_11['url']
 
-    # 3. 수요 예배
-    item_wed = next((x for x in streams if x.get('year') == wed_dt.year and x['month'] == wm and x['day'] == wd and x.get('type') == '수요'), None)
+    # 3. 수요 예배 (주일 직후 다가오는 수요일 매칭)
+    item_wed = next((x for x in streams if x.get('year') == wy and x['month'] == wm and x['day'] == wd and x.get('type') == '수요'), None)
+    if not item_wed and wy == 2026:
+        item_wed = next((x for x in streams if x['month'] == wm and x['day'] == wd and x.get('type') == '수요'), None)
     if not item_wed:
-        item_wed = next((x for x in streams if x.get('year') == y and x['month'] == m and abs(x['day'] - d) <= 4 and x.get('type') == '수요'), None)
+        # 수요일 날짜 기준 ±2일 이내의 수요기도회 매칭 (공휴일 등으로 일정이 소폭 조정된 경우)
+        def wed_day_diff(x):
+            if x.get('type') != '수요':
+                return 999
+            if x.get('year') and x['year'] != wy:
+                return 999
+            if x['month'] != wm:
+                return 999
+            return abs(x['day'] - wd)
+
+        candidates = [x for x in streams if wed_day_diff(x) <= 2]
+        if candidates:
+            candidates.sort(key=wed_day_diff)
+            item_wed = candidates[0]
+
     if item_wed:
         results['수요'] = item_wed['url']
 
