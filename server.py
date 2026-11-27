@@ -1,4 +1,5 @@
 import os
+import hmac
 import json
 import re
 import time
@@ -20,9 +21,31 @@ import prayer_time_analyzer
 
 load_dotenv()
 
-# Gemini API Key 고정값 자동 보장 (Render 배포 시에도 날아가지 않도록 DB/코드 기본값 자동 연동)
-if not os.getenv("GEMINI_API_KEY") or not os.getenv("GEMINI_API_KEY").strip():
-    os.environ["GEMINI_API_KEY"] = database.get_gemini_api_keys()
+# 비밀값은 소스에 하드코딩하지 않고 환경변수로만 주입합니다.
+#   MYKS_ACCESS_KEY : 주보 사이트 접근 키 (미설정 시 기존 링크·쿠키 호환을 위해 'myks' 사용)
+#   ADMIN_PIN       : 관리자(키 저장) 인증 PIN (미설정 시 관리자 기능 전면 거부)
+#   GEMINI_API_KEY / GEMINI_API_KEYS : Gemini API 키 (database.get_gemini_api_keys()가 읽음)
+#   GITHUB_TOKEN (또는 GITHUB_PAT)   : bulletin.db 자동 동기화 토큰
+SITE_ACCESS_KEY_ENV = "MYKS_ACCESS_KEY"
+DEFAULT_SITE_ACCESS_KEY = "myks"
+ADMIN_PIN_ENV = "ADMIN_PIN"
+
+def get_site_access_key() -> str:
+    return os.getenv(SITE_ACCESS_KEY_ENV, "").strip() or DEFAULT_SITE_ACCESS_KEY
+
+def get_admin_pin() -> str:
+    return os.getenv(ADMIN_PIN_ENV, "").strip()
+
+def require_admin(password: Optional[str]) -> None:
+    """관리자 PIN을 검증합니다. ADMIN_PIN이 설정되지 않았다면 안전하게 거부(fail-closed)합니다."""
+    expected = get_admin_pin()
+    if not expected:
+        raise HTTPException(
+            status_code=503,
+            detail="서버에 관리자 PIN(ADMIN_PIN)이 설정되어 있지 않습니다. 환경변수를 설정한 뒤 다시 시도해 주세요."
+        )
+    if not hmac.compare_digest((password or "").strip(), expected):
+        raise HTTPException(status_code=403, detail="관리자 비밀번호가 올바르지 않습니다.")
 
 app = FastAPI(title="금성교회 주보 아카이브 & 검색 시스템")
 
@@ -70,13 +93,15 @@ templates = Jinja2Templates(directory=TEMPLATES_DIR)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 def check_auth(request: Request, key: Optional[str] = None) -> bool:
-    if key and key.strip().lower() == "myks":
-        return True
-    if request.cookies.get("myks_auth", "").strip().lower() == "myks":
-        return True
-    if request.headers.get("X-Myks-Key", "").strip().lower() == "myks":
-        return True
-    return False
+    expected = get_site_access_key()
+    if not expected:
+        return False
+    candidates = [
+        key or "",
+        request.cookies.get("myks_auth", ""),
+        request.headers.get("X-Myks-Key", ""),
+    ]
+    return any(hmac.compare_digest(c.strip().lower(), expected.lower()) for c in candidates)
 
 @app.on_event("startup")
 def on_startup():
@@ -84,24 +109,26 @@ def on_startup():
 
 @app.post("/api/auth/verify")
 def api_verify_auth(data: dict):
-    input_key = data.get("key", "").strip().lower()
-    if input_key == "myks":
+    input_key = str(data.get("key", "")).strip()
+    expected = get_site_access_key()
+    if expected and hmac.compare_digest(input_key.lower(), expected.lower()):
         res = JSONResponse({"success": True})
-        res.set_cookie(key="myks_auth", value="myks", max_age=31536000, httponly=False, samesite="lax")
+        res.set_cookie(key="myks_auth", value=expected, max_age=31536000, httponly=True, samesite="lax")
         return res
     return JSONResponse({"success": False, "message": "암호가 올바르지 않습니다."}, status_code=401)
 
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request, key: Optional[str] = None):
     is_authenticated = check_auth(request, key)
-    has_api_key = bool(os.getenv("GEMINI_API_KEY", "").strip())
+    has_api_key = database.has_gemini_api_keys()
     response = templates.TemplateResponse(
         request=request,
         name="index.html",
         context={"has_api_key": has_api_key, "is_authenticated": is_authenticated}
     )
-    if key and key.strip().lower() == "myks":
-        response.set_cookie(key="myks_auth", value="myks", max_age=31536000, httponly=False, samesite="lax")
+    expected = get_site_access_key()
+    if key and expected and hmac.compare_digest(key.strip().lower(), expected.lower()):
+        response.set_cookie(key="myks_auth", value=expected, max_age=31536000, httponly=True, samesite="lax")
     return response
 
 @app.get("/api/bulletins/calendar")
@@ -240,57 +267,38 @@ class SettingsPayload(BaseModel):
     github_token: Optional[str] = None
     password: str
 
-class LoadKeysPayload(BaseModel):
-    password: str
+SECRET_MASK = "••••••••"
 
 @app.get("/api/settings/key-summary")
 def api_get_key_summary():
+    """등록된 비밀값의 '개수/존재 여부'만 반환합니다.
+
+    키 원문은 물론 접두사(AIza..., ghp_...) 같은 부분 문자열도 응답에 넣지 않습니다.
+    (프론트엔드는 gemini_keys_count / gemini_masked_keys / has_github_token /
+     github_token_preview 필드를 그대로 사용하므로 화면은 그대로 동작합니다.)
+    """
     raw_key = database.get_gemini_api_keys()
     keys = [k.strip() for k in re.split(r"[\r\n,]+", raw_key) if k.strip()]
-    
-    masked_keys = []
-    for idx, k in enumerate(keys, 1):
-        if len(k) <= 10:
-            preview = k[:3] + "..." + k[-2:] if len(k) > 5 else "***"
-        else:
-            preview = k[:6] + "..." + k[-4:]
-        masked_keys.append({"index": idx, "preview": preview})
-        
-    raw_gh = os.getenv("GITHUB_TOKEN", "").strip() or database.get_app_setting("GITHUB_TOKEN", "")
-    gh_preview = ""
-    if raw_gh:
-        gh_preview = raw_gh[:6] + "..." + raw_gh[-4:] if len(raw_gh) > 10 else "ghp_***"
+
+    masked_keys = [{"index": idx, "preview": SECRET_MASK} for idx, _ in enumerate(keys, 1)]
+
+    raw_gh = (
+        os.getenv("GITHUB_TOKEN", "").strip()
+        or os.getenv("GITHUB_PAT", "").strip()
+        or (database.get_app_setting("GITHUB_TOKEN", "") or "")
+    )
 
     return {
         "gemini_keys_count": len(keys),
         "gemini_masked_keys": masked_keys,
         "has_gemini_key": len(keys) > 0,
         "has_github_token": bool(raw_gh),
-        "github_token_preview": gh_preview
-    }
-
-@app.post("/api/settings/load-keys")
-def api_load_keys(payload: LoadKeysPayload):
-    if payload.password.strip() != "4123":
-        raise HTTPException(status_code=403, detail="관리자 비밀번호가 올바르지 않습니다.")
-        
-    raw_key = database.get_gemini_api_keys()
-    keys = [k.strip() for k in re.split(r"[\r\n,]+", raw_key) if k.strip()]
-    formatted_keys = ",\n".join(keys)
-    
-    raw_gh = os.getenv("GITHUB_TOKEN", "").strip() or database.get_app_setting("GITHUB_TOKEN", "")
-    
-    return {
-        "status": "ok",
-        "gemini_api_key": formatted_keys,
-        "github_token": raw_gh,
-        "count": len(keys)
+        "github_token_preview": SECRET_MASK if raw_gh else ""
     }
 
 @app.post("/api/settings/key")
 def api_set_key(payload: SettingsPayload):
-    if payload.password.strip() != "4123":
-        raise HTTPException(status_code=403, detail="관리자 비밀번호가 올바르지 않습니다.")
+    require_admin(payload.password)
     
     env_file = os.path.join(BASE_DIR, ".env")
     updated_items = []
@@ -323,14 +331,18 @@ def api_set_key(payload: SettingsPayload):
     return {"status": "ok", "message": f"{', '.join(updated_items)}가 성공적으로 저장되었습니다."}
 
 @app.post("/api/sync-github")
-def api_sync_github(background_tasks: BackgroundTasks):
+def api_sync_github(request: Request, background_tasks: BackgroundTasks):
+    if not check_auth(request):
+        raise HTTPException(status_code=403, detail="접근 권한이 없습니다.")
     def run_sync():
         github_sync.sync_db_to_github()
     background_tasks.add_task(run_sync)
     return {"status": "ok", "message": "GitHub로 최신 DB 자동 저장을 시작했습니다."}
 
 @app.post("/api/crawl")
-def api_trigger_crawl(background_tasks: BackgroundTasks, limit: int = 5, use_vision: bool = True):
+def api_trigger_crawl(request: Request, background_tasks: BackgroundTasks, limit: int = 5, use_vision: bool = True):
+    if not check_auth(request):
+        raise HTTPException(status_code=403, detail="접근 권한이 없습니다.")
     def run_job():
         crawler.run_crawler(start_page=1, end_page=1, limit=limit, use_vision=use_vision)
         # 크롤링 및 DB 저장 완료 후, 자동으로 GitHub에 최신 bulletin.db 커밋 & 푸시!
@@ -555,7 +567,9 @@ def run_full_reanalyze_pipeline(b_id: int):
         set_job_state(job_state)
 
 @app.post("/api/bulletins/{b_id}/analyze")
-def api_analyze_single(b_id: int, background_tasks: BackgroundTasks):
+def api_analyze_single(b_id: int, request: Request, background_tasks: BackgroundTasks):
+    if not check_auth(request):
+        raise HTTPException(status_code=403, detail="접근 권한이 없습니다.")
     item = database.get_bulletin_by_id(b_id)
     if not item:
         raise HTTPException(status_code=404, detail="Bulletin not found")
@@ -640,7 +654,9 @@ def api_analysis_status():
     }
 
 @app.post("/api/batch-analyze")
-def api_trigger_batch_analyze(background_tasks: BackgroundTasks, limit: Optional[int] = None):
+def api_trigger_batch_analyze(request: Request, background_tasks: BackgroundTasks, limit: Optional[int] = None):
+    if not check_auth(request):
+        raise HTTPException(status_code=403, detail="접근 권한이 없습니다.")
     if batch_analyze.is_running:
         return {"status": "already_running", "message": "이미 일괄 정리 작업이 진행 중입니다."}
     
