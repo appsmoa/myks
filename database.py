@@ -295,19 +295,11 @@ def init_db():
 
 import base64
 
-# 사용자 고정 기본 Gemini API 키 4개 (GitHub Secret Scanning 통과를 위해 안전하게 Base64 보관 후 런타임 복원)
-_DEFAULT_GEMINI_API_KEYS_B64 = (
-    "QVEuQWI4Uk42SUtOTktHLVRJeHNJYUFsQVhJNE1KbVFMSjltb0x6MlRTWGtBcmRKdEIxdVEsQVEuQWI4Uk42SUVlcHZtRFh"
-    "HcmVwbUxmNVJRWXpraEVjS0E5R1Y4STRCeEtSUHBtSWhpcHcsQVEuQWI4Uk42SWFlcFlKcXBpX1BjdFRqSFJ5T1BZd0lKQ"
-    "093T3FfZ2d5OVMwWEFuYlVXMlEsQVEuQWI4Uk42SWJEMzBFb1FiWVRzSWlvbEpXUU1BZ2M1c2xVTHBWeExOZ0ZmRkU5ZH"
-    "BPR1E="
-)
-
-def _decode_default_keys() -> str:
-    try:
-        return base64.b64decode(_DEFAULT_GEMINI_API_KEYS_B64.encode('utf-8')).decode('utf-8')
-    except Exception:
-        return ""
+# Gemini API 키는 소스에 두지 않습니다.
+# - 환경변수: GEMINI_API_KEYS(여러 개, 쉼표/줄바꿈 구분) 또는 GEMINI_API_KEY(한 개)
+# - DB 설정: app_settings의 GEMINI_API_KEY (관리자 화면에서 저장한 값)
+# 어느 곳에도 없으면 빈 문자열을 반환하고, Vision/영상 분석은 자동으로 건너뜁니다.
+GEMINI_KEY_ENV_NAMES = ("GEMINI_API_KEYS", "GEMINI_API_KEY")
 
 def set_app_setting(key: str, value: str):
     conn = get_connection()
@@ -341,26 +333,31 @@ def get_app_setting(key: str, default: Optional[str] = None) -> Optional[str]:
     return default
 
 def get_gemini_api_keys() -> str:
-    # 사용자 고정 5개 키를 기본 토대로 확보 (Render 환경변수가 1개짜리로 덮어쓰더라도 항상 5개 키 무조건 보장!)
-    base_keys = [k.strip() for k in _decode_default_keys().split(',') if k.strip()]
-    
-    # DB 및 환경변수에서 추가된 키가 있다면 합침
-    extra_sources = []
+    """Gemini API 키 목록을 환경변수와 DB 설정에서 모아 쉼표로 이어 반환합니다.
+
+    소스 코드에는 어떤 키도 하드코딩되어 있지 않습니다. 키가 하나도 설정되지 않으면
+    빈 문자열을 반환하며, 호출하는 쪽은 이를 '설정 없음'으로 처리합니다.
+    """
+    sources = []
+    for env_name in GEMINI_KEY_ENV_NAMES:
+        env_val = os.getenv(env_name, "").strip()
+        if env_val:
+            sources.append(env_val)
     db_val = get_app_setting("GEMINI_API_KEY")
     if db_val:
-        extra_sources.append(db_val)
-    env_val = os.getenv("GEMINI_API_KEY", "").strip()
-    if env_val:
-        extra_sources.append(env_val)
-        
-    all_keys = list(base_keys)
-    for src in extra_sources:
+        sources.append(db_val)
+
+    all_keys = []
+    for src in sources:
         for k in re.split(r"[\r\n,]+", src):
             k_clean = k.strip()
             if k_clean and k_clean not in all_keys:
                 all_keys.append(k_clean)
-                
+
     return ",".join(all_keys)
+
+def has_gemini_api_keys() -> bool:
+    return bool(get_gemini_api_keys().strip())
 
 def save_analysis_job(bulletin_id: int, status: str, stage: int, message: str, stages: list):
     conn = get_connection()
